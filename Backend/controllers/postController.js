@@ -247,9 +247,9 @@ export const addComment = async (req, res) => {
   const post = await Post.findById(req.params.id);
 
   post.comments.push({
-    user: req.userId,
-    text,
-  });
+  user: req.userId,
+  message: text,
+});
 
   await post.save();
 

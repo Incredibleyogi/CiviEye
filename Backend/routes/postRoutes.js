@@ -14,9 +14,4 @@ router.patch("/:id/status", protect, updatePostStatus);
 router.post("/:id/like", protect, likePost);
 router.post("/:id/comment", protect, addComment);
 
-
-
-
-
-
 export default router;

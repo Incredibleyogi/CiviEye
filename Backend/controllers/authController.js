@@ -8,57 +8,84 @@ import sendOTPEmail from "../utils/sendOTPEmail.js";
 ======================= */
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, confirmPassword } = req.body;
+    const { name, email, password, confirmPassword, lat, lng } = req.body;
 
-    // Validate fields
+    /* =======================
+       BASIC VALIDATIONS
+    ======================= */
     if (!name || !email || !password || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Password match
     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    // Password strength
     if (password.length < 8) {
       return res
         .status(400)
         .json({ message: "Password must be at least 8 characters long" });
     }
 
-    // Existing user check
+    /* =======================
+       USER EXISTENCE CHECK
+    ======================= */
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash password
+    /* =======================
+       HASH PASSWORD
+    ======================= */
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000);
+    /* =======================
+       OTP GENERATION (HASHED)
+    ======================= */
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // Create user
-    const user = await User.create({
+    /* =======================
+       USER OBJECT
+    ======================= */
+    const userData = {
       name,
       email,
       password: hashedPassword,
-      otp,
+      otp: hashedOtp,
       otpExpiry: Date.now() + 10 * 60 * 1000,
+      otpLastSentAt: Date.now(),
       isVerified: false,
-    });
+    };
 
-    // Send OTP email
+    /* =======================
+       OPTIONAL LOCATION
+    ======================= */
+    if (lat && lng) {
+      userData.location = {
+        type: "Point",
+        coordinates: [Number(lng), Number(lat)], // GeoJSON order
+      };
+    }
+
+    const user = await User.create(userData);
+
+    /* =======================
+       SEND OTP EMAIL
+    ======================= */
     await sendOTPEmail(email, otp);
 
     res.status(201).json({
       message: "Signup successful. OTP sent to email",
     });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Signup error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
+
 
 /* =======================
    VERIFY OTP
