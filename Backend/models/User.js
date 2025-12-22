@@ -28,9 +28,23 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  location: {
+  type: {
+    type: String,
+    enum: ["Point"],
+    default: "Point",
+  },
+  role: { type: String, enum: ["user", "admin"], default: "user" }
+  ,
+  coordinates: {
+    type: [Number], // [lng, lat]
+    index: "2dsphere",
+  },
+}
+,
 
   // OTP (for verification / reset)
-  otp: Number,
+  otp: String,
   otpExpiry: Number,
   otpLastSentAt: Number 
 
