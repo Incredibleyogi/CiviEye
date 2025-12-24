@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import { signToken } from "../config/jwt.js";
 import sendOTPEmail from "../utils/sendOTPEmail.js";
+import { OAuth2Client } from "google-auth-library";
 
 /* =======================
    SIGNUP
@@ -211,3 +212,5 @@ export const resendOtp = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
