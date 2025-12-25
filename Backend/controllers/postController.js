@@ -141,7 +141,11 @@ export const getNearbyPosts = async (req, res) => {
     const lat = parseFloat(req.query.lat);
     const radius = parseInt(req.query.radius || "500", 10);
 
-    if (isNaN(lng) || isNaN(lat)) return res.status(400).json({ message: "Invalid coords" });
+    // If latitude/longitude are not provided, return recent posts (fallback)
+    if (isNaN(lng) || isNaN(lat)) {
+      const posts = await Post.find().sort({ createdAt: -1 }).limit(200);
+      return res.json({ posts });
+    }
 
     const posts = await Post.find({
       location: {

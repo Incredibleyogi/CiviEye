@@ -22,12 +22,12 @@ app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: "*", // update later with specific frontend domain
-    methods: "GET,POST,PUT,DELETE",
-    allowedHeaders: "Content-Type,Authorization",
+    origin: "http://localhost:8080",
+    credentials: true, // needed for Google OAuth redirects
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);

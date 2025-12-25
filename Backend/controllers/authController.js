@@ -95,25 +95,38 @@ export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
     const user = await User.findOne({ email });
 
-    if (!user || user.otp !== Number(otp)) {
+    if (!user || !user.otp) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
+    // ⏱️ Check expiry
     if (user.otpExpiry < Date.now()) {
       return res.status(400).json({ message: "OTP expired" });
     }
 
-    // Activate account
+    // 🔐 Compare hashed OTP
+    const isOtpValid = await bcrypt.compare(otp.toString(), user.otp);
+    if (!isOtpValid) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    // ✅ Verify account
     user.isVerified = true;
     user.otp = null;
     user.otpExpiry = null;
+    user.otpLastSentAt = null;
     await user.save();
 
     res.json({
       message: "Account verified successfully. Please login.",
     });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
