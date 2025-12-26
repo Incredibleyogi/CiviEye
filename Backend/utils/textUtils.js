@@ -1,3 +1,4 @@
+// utils/textUtils.js
 import stringSimilarity from "string-similarity";
 
 /**

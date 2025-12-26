@@ -1,3 +1,4 @@
+// middleware/duplicateCheck.js
 import { checkDuplicate } from "../utils/duplicateCheckAI.js";
 
 // Expects req.body.imageBase64 and req.body.location.coordinates and req.body.description

@@ -1,3 +1,4 @@
+//controllers/googleAuthController.js
 import User from "../models/User.js";
 import { OAuth2Client } from "google-auth-library";
 import { signToken } from "../config/jwt.js";
@@ -36,20 +37,21 @@ export const googleLogin = async (req, res) => {
 
     if (!user) {
       // Create new user from Google data
-      user = await User.create({
-        name: name || "User",
-        email,
-        profilePic: picture || null,
-        isVerified: true, // Google users are pre-verified
-        googleId: payload.sub,
-        password: null, // No password for Google sign-in
-      });
+     user = await User.create({
+  name,
+  email,
+  avatar: picture,
+  provider: "google",
+  isVerified: true,
+});
+
     }
 
     /* =======================
        GENERATE JWT TOKEN
     ======================= */
-    const jwtToken = signToken(user._id);
+    const jwtToken = signToken({ id: user._id });
+
 
     res.status(200).json({
       message: "Google login successful",

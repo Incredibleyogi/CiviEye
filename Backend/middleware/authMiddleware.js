@@ -1,6 +1,7 @@
 // middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { verifyToken } from "../config/jwt.js";
 
 export const protect = async (req, res, next) => {
   try {
@@ -11,8 +12,11 @@ export const protect = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
+    const decoded = verifyToken(token);
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
 
     const user = await User.findById(decoded.id).select("-password");
 
@@ -20,12 +24,10 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ message: "User not found" });
     }
 
-    // ✅ Attach both (use whichever you want later)
     req.user = user;
     req.userId = user._id;
-
     next();
-  } catch (error) {
-    return res.status(401).json({ message: "Not authorized, token failed" });
+  } catch (err) {
+    return res.status(401).json({ message: "Not authorized" });
   }
 };

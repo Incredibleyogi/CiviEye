@@ -47,6 +47,8 @@ const userSchema = new mongoose.Schema({
     enum: ["user", "admin"],
     default: "user",
   },
+  bio: { type: String, default: "" },
+
 
   otp: String,
   otpExpiry: Number,

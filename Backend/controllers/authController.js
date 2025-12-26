@@ -1,9 +1,10 @@
+// controllers/authController.js
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import { signToken } from "../config/jwt.js";
 import sendOTPEmail from "../utils/sendOTPEmail.js";
 import { OAuth2Client } from "google-auth-library";
-
+import cloudinary from "../utils/cloudinary.js";
 /* =======================
    SIGNUP
 ======================= */
@@ -226,4 +227,61 @@ export const resendOtp = async (req, res) => {
   }
 };
 
+//---------------------
+//update profile
+export const updateProfile = async (req, res) => {
+  const user = await User.findById(req.user.id);
 
+  user.name = req.body.name || user.name;
+  user.bio = req.body.bio || user.bio;
+  user.avatar = req.body.avatar || user.avatar;
+
+  await user.save();
+
+  res.json(user);
+};
+
+
+/* =======================
+   For cureent logged in user profile
+======================= */
+export const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password -otp -otpExpiry -otpLastSentAt");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/*Profile pic update*/ 
+export const updateAvatar = async (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+
+    if (!imageBase64) {
+      return res.status(400).json({ message: "Image is required" });
+    }
+
+    const upload = await cloudinary.uploader.upload(imageBase64, {
+      folder: "civiceye/avatars",
+    });
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatar: upload.secure_url },
+      { new: true }
+    ).select("-password");
+
+    res.json({ message: "Avatar updated", user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+/* =======================
+    END
+======================= */

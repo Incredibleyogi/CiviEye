@@ -33,3 +33,18 @@ export const markRead = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+/*notification count
+*/
+export const getNotificationCount = async (req, res) => {
+  try {
+    const count = await Notification.countDocuments({
+      user: req.user._id,
+      isRead: false,
+    });
+
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

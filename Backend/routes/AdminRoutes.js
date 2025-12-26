@@ -1,3 +1,4 @@
+// routes/AdminRoutes.js
 import express from "express";
 import { respondToPost } from "../controllers/adminController.js";
 import { protect } from "../middleware/authMiddleware.js";

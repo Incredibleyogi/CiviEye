@@ -12,6 +12,11 @@ const postSchema = new mongoose.Schema({
   image: String, // Cloudinary URL
   imagePublicId: String, // Cloudinary public id
   thumbnail: String, // small version
+  mediaType: {
+  type: String,
+  enum: ["image", "video"],
+  default: "image"
+},
   category: String,
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   comments: [commentSchema],
