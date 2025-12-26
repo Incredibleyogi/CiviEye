@@ -5,6 +5,7 @@ import { signToken } from "../config/jwt.js";
 import sendOTPEmail from "../utils/sendOTPEmail.js";
 import { OAuth2Client } from "google-auth-library";
 import cloudinary from "../utils/cloudinary.js";
+
 /* =======================
    SIGNUP
 ======================= */
@@ -88,7 +89,6 @@ export const signup = async (req, res) => {
   }
 };
 
-
 /* =======================
    VERIFY OTP
 ======================= */
@@ -158,11 +158,13 @@ export const login = async (req, res) => {
 
     const token = signToken({ id: user._id });
 
-    // Safe user response
+    // Safe user response - include avatar and bio
     const safeUser = {
       id: user._id,
       name: user.name,
       email: user.email,
+      avatar: user.avatar || null,
+      bio: user.bio || null,
     };
 
     res.json({
@@ -175,8 +177,6 @@ export const login = async (req, res) => {
   }
 };
 
-
-//------------- resend otp function could be added here -------------
 /* =======================
    RESEND OTP
 ======================= */
@@ -227,27 +227,64 @@ export const resendOtp = async (req, res) => {
   }
 };
 
-//---------------------
-//update profile
+/* =======================
+   UPDATE PROFILE
+======================= */
 export const updateProfile = async (req, res) => {
-  const user = await User.findById(req.user.id);
+  try {
+    // FIX: Use req.user._id instead of req.user.id
+    const userId = req.user?._id || req.user?.id || req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+    
+    const user = await User.findById(userId);
+    
+    // FIX: Add null check for user
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-  user.name = req.body.name || user.name;
-  user.bio = req.body.bio || user.bio;
-  user.avatar = req.body.avatar || user.avatar;
+    user.name = req.body.name || user.name;
+    user.bio = req.body.bio || user.bio;
+    
+    // Only update avatar if provided (for non-file updates)
+    if (req.body.avatar) {
+      user.avatar = req.body.avatar;
+    }
 
-  await user.save();
+    await user.save();
 
-  res.json(user);
+    // Return safe user object
+    const safeUser = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar || null,
+      bio: user.bio || null,
+    };
+
+    res.json({ message: "Profile updated", user: safeUser });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ message: err.message });
+  }
 };
 
-
 /* =======================
-   For cureent logged in user profile
+   GET CURRENT USER
 ======================= */
 export const getCurrentUser = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password -otp -otpExpiry -otpLastSentAt");
+    // FIX: Support both req.user._id and req.userId
+    const userId = req.user?._id || req.user?.id || req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+    
+    const user = await User.findById(userId).select("-password -otp -otpExpiry -otpLastSentAt");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json({ user });
@@ -256,7 +293,9 @@ export const getCurrentUser = async (req, res) => {
   }
 };
 
-/*Profile pic update*/ 
+/* =======================
+   UPDATE AVATAR
+======================= */
 export const updateAvatar = async (req, res) => {
   try {
     const { imageBase64 } = req.body;
@@ -265,23 +304,30 @@ export const updateAvatar = async (req, res) => {
       return res.status(400).json({ message: "Image is required" });
     }
 
+    // FIX: Support both req.user._id and req.userId
+    const userId = req.user?._id || req.user?.id || req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
     const upload = await cloudinary.uploader.upload(imageBase64, {
       folder: "civiceye/avatars",
     });
 
     const user = await User.findByIdAndUpdate(
-      req.user._id,
+      userId,
       { avatar: upload.secure_url },
       { new: true }
-    ).select("-password");
+    ).select("-password -otp -otpExpiry -otpLastSentAt");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     res.json({ message: "Avatar updated", user });
   } catch (err) {
+    console.error("Update avatar error:", err);
     res.status(500).json({ message: err.message });
   }
 };
-
-
-/* =======================
-    END
-======================= */
