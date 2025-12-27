@@ -1,6 +1,9 @@
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Socket.IO server origin (API url without the trailing "/api")
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+
 interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -19,7 +22,7 @@ async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const token = getAuthToken();
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
@@ -30,6 +33,47 @@ async function apiRequest<T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.message || 'Request failed',
+        message: data.message,
+      };
+    }
+
+    return {
+      success: true,
+      data,
+      message: data.message,
+    };
+  } catch (error) {
+    console.error('API Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error',
+    };
+  }
+}
+
+// Multipart form request for file uploads
+async function apiFormRequest<T>(
+  endpoint: string,
+  formData: FormData
+): Promise<ApiResponse<T>> {
+  const token = getAuthToken();
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+        // Note: Don't set Content-Type for FormData, browser sets it with boundary
+      },
+      body: formData,
     });
 
     const data = await response.json();
@@ -86,6 +130,17 @@ export const passwordApi = {
     apiRequest('/password/change-password', { method: 'POST', body: JSON.stringify(data) }),
 };
 
+// Profile API
+export const profileApi = {
+  updateProfile: (data: { name?: string; bio?: string; avatar?: string }) =>
+    apiRequest('/auth/update-profile', { method: 'PUT', body: JSON.stringify(data) }),
+
+  updateAvatar: (imageBase64: string) =>
+    apiRequest('/auth/profile/avatar', { method: 'POST', body: JSON.stringify({ imageBase64 }) }),
+
+  getCurrentUser: () => apiRequest('/auth/me'),
+};
+
 // Posts API
 export interface CreatePostData {
   title: string;
@@ -96,6 +151,7 @@ export interface CreatePostData {
     type: 'Point';
     coordinates: [number, number];
   };
+  imageFile?: File;
   imageBase64?: string;
 }
 
@@ -105,9 +161,33 @@ export interface DuplicateCheckResponse {
   reason?: string[];
 }
 
+// Helper to create FormData for multipart upload
+async function createPostFormData(data: CreatePostData): Promise<FormData> {
+  const formData = new FormData();
+  formData.append('title', data.title);
+  formData.append('description', data.description);
+  formData.append('category', data.category);
+  formData.append('address', data.address);
+  formData.append('location', JSON.stringify(data.location));
+
+  // If imageBase64 is provided, convert to File
+  if (data.imageBase64 && !data.imageFile) {
+    const response = await fetch(data.imageBase64);
+    const blob = await response.blob();
+    const file = new File([blob], 'image.jpg', { type: blob.type || 'image/jpeg' });
+    formData.append('media', file);
+  } else if (data.imageFile) {
+    formData.append('media', data.imageFile);
+  }
+
+  return formData;
+}
+
 export const postsApi = {
-  create: (data: CreatePostData) =>
-    apiRequest('/posts/', { method: 'POST', body: JSON.stringify(data) }),
+  create: async (data: CreatePostData) => {
+    const formData = await createPostFormData(data);
+    return apiFormRequest('/posts/', formData);
+  },
 
   getNearby: (params?: { lat?: number; lng?: number; radius?: number; category?: string; status?: string }) => {
     const searchParams = new URLSearchParams();
@@ -130,16 +210,25 @@ export const postsApi = {
 
   like: (id: string) => apiRequest(`/posts/${id}/like`, { method: 'POST' }),
 
-  addComment: (id: string, comment: string) =>
-    apiRequest(`/posts/${id}/comment`, { method: 'POST', body: JSON.stringify({ comment }) }),
+  // Backend expects "text" field, not "comment"
+  addComment: (id: string, text: string) =>
+    apiRequest(`/posts/${id}/comment`, { method: 'POST', body: JSON.stringify({ text }) }),
+
+  getComments: (id: string) => apiRequest(`/posts/${id}/comments`),
 };
 
 // Notifications API
 export const notificationsApi = {
   getAll: () => apiRequest('/notifications'),
 
+  // Backend expects { ids: [...] } array format
   markRead: (id: string) =>
-    apiRequest('/notifications/mark-read', { method: 'POST', body: JSON.stringify({ notificationId: id }) }),
+    apiRequest('/notifications/mark-read', { method: 'POST', body: JSON.stringify({ ids: [id] }) }),
+
+  markMultipleRead: (ids: string[]) =>
+    apiRequest('/notifications/mark-read', { method: 'POST', body: JSON.stringify({ ids }) }),
+
+  getCount: () => apiRequest('/notifications/count'),
 };
 
-export { API_BASE_URL };
+export { API_BASE_URL, API_ORIGIN };

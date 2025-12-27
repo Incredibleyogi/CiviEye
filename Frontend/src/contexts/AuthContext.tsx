@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
-import { authApi, passwordApi } from '@/lib/api';
+import { authApi, passwordApi, profileApi } from '@/lib/api';
 
 interface AuthState {
   user: User | null;
@@ -48,11 +48,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.login({ email, password });
       
       if (response.success && response.data) {
-        const { token: authToken, user: userData } = response.data as { token: string; user: User };
+        const { token: authToken, user: userData } = response.data as { token: string; user: any };
+        // Transform backend user to frontend User type
+        const userObj: User = {
+          id: userData._id || userData.id,
+          name: userData.name,
+          email: userData.email,
+          avatar: userData.avatar || userData.profilePic,
+          bio: userData.bio,
+          role: userData.role || 'user' as UserRole,
+        };
         setToken(authToken);
-        setUser(userData);
+        setUser(userObj);
         localStorage.setItem('civiceye_token', authToken);
-        localStorage.setItem('civiceye_user', JSON.stringify(userData));
+        localStorage.setItem('civiceye_user', JSON.stringify(userObj));
         return { success: true };
       }
       
@@ -182,15 +191,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfile = async (updates: { name?: string; bio?: string; avatar?: string }): Promise<boolean> => {
-    // TODO: Implement profile update API endpoint when backend supports it
-    // For now, update locally
-    if (user) {
-      const updatedUser = { ...user, ...updates };
-      setUser(updatedUser);
-      localStorage.setItem('civiceye_user', JSON.stringify(updatedUser));
+    try {
+      // If avatar is a base64 string (new upload), use the separate avatar endpoint
+      if (updates.avatar && updates.avatar.startsWith('data:')) {
+        const avatarResponse = await profileApi.updateAvatar(updates.avatar);
+        if (avatarResponse.success && avatarResponse.data) {
+          const userData = (avatarResponse.data as any).user;
+          if (userData?.avatar) {
+            updates.avatar = userData.avatar; // Use Cloudinary URL
+          }
+        }
+      }
+
+      // Update profile (name, bio) - only send if there are updates
+      const profileUpdates: { name?: string; bio?: string } = {};
+      if (updates.name) profileUpdates.name = updates.name;
+      if (updates.bio !== undefined) profileUpdates.bio = updates.bio;
+
+      if (Object.keys(profileUpdates).length > 0) {
+        const response = await profileApi.updateProfile(profileUpdates);
+        if (!response.success) {
+          console.error('Failed to update profile');
+          return false;
+        }
+        
+        // Get updated user from response
+        const userData = (response.data as any)?.user;
+        if (userData) {
+          updates.name = userData.name;
+          updates.bio = userData.bio;
+        }
+      }
+
+      // Update local state with all changes
+      if (user) {
+        const updatedUser = { ...user, ...updates };
+        setUser(updatedUser);
+        localStorage.setItem('civiceye_user', JSON.stringify(updatedUser));
+      }
       return true;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return false;
     }
-    return false;
   };
 
   const isAdmin = user?.role === 'admin';

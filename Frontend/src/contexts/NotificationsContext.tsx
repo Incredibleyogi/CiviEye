@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Notification } from '@/types';
-import { notificationsApi } from '@/lib/api';
+import { notificationsApi, API_ORIGIN } from '@/lib/api';
 import { useAuth } from './AuthContext';
 import { io, Socket } from 'socket.io-client';
 
@@ -17,13 +17,11 @@ interface NotificationsContextType {
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState<Socket | null>(null);
-  const { token, isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -32,7 +30,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const response = await notificationsApi.getAll();
-      
+
       if (response.success && response.data) {
         const notifData = (response.data as { notifications?: Notification[] }).notifications || response.data;
         if (Array.isArray(notifData)) {
@@ -61,22 +59,17 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    if (isAuthenticated && token) {
-      const newSocket = io(API_BASE_URL, {
-        auth: { token },
-        transports: ['websocket', 'polling']
+    if (isAuthenticated && user?.id) {
+      const newSocket = io(API_ORIGIN, {
+        transports: ['websocket', 'polling'],
       });
 
       newSocket.on('connect', () => {
-        console.log('Socket connected');
-        // Join user's room for personalized notifications
-        if (user?.id) {
-          newSocket.emit('join', user.id);
-        }
+        // Backend expects "register" with userId
+        newSocket.emit('register', user.id);
       });
 
       newSocket.on('new_post', (data: any) => {
-        console.log('New post notification:', data);
         addNotification({
           type: 'nearby_post',
           message: `New civic issue reported: ${data.title || 'New post'}`,
@@ -90,12 +83,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       });
 
       newSocket.on('notification', (data: any) => {
-        console.log('Notification received:', data);
         const notification: Omit<Notification, 'id' | 'createdAt' | 'read'> = {
           type: data.type || 'status_update',
           message: data.message,
           postId: data.postId,
-          fromUser: data.fromUser
+          fromUser: data.fromUser,
         };
         addNotification(notification);
       });
@@ -104,12 +96,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         addNotification({
           type: 'status_update',
           message: `Your post status has been updated to: ${data.status}`,
-          postId: data.postId
+          postId: data.postId,
         });
-      });
-
-      newSocket.on('disconnect', () => {
-        console.log('Socket disconnected');
       });
 
       setSocket(newSocket);
@@ -118,7 +106,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         newSocket.disconnect();
       };
     }
-  }, [isAuthenticated, token, user?.id]);
+
+    // If user logs out, ensure socket is closed
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+    }
+  }, [isAuthenticated, user?.id]);
 
   // Fetch notifications when authenticated
   useEffect(() => {
@@ -146,8 +140,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const markAsRead = async (id: string): Promise<boolean> => {
     try {
+      // Backend expects { ids: [...] } array format
       const response = await notificationsApi.markRead(id);
-      
+
       if (response.success) {
         setNotifications(prev =>
           prev.map(n => (n.id === id ? { ...n, read: true } : n))
@@ -165,8 +160,17 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllAsRead = async () => {
+    try {
+      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+      if (unreadIds.length > 0) {
+        await notificationsApi.markMultipleRead(unreadIds);
+      }
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
   };
 
   const clearNotifications = () => {
@@ -175,13 +179,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   return (
     <NotificationsContext.Provider
-      value={{ 
-        notifications, 
-        unreadCount, 
+      value={{
+        notifications,
+        unreadCount,
         loading,
-        addNotification, 
-        markAsRead, 
-        markAllAsRead, 
+        addNotification,
+        markAsRead,
+        markAllAsRead,
         clearNotifications,
         refreshNotifications
       }}
@@ -198,3 +202,4 @@ export function useNotifications() {
   }
   return context;
 }
+

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { passwordApi } from '@/lib/api';
 import {
   InputOTP,
   InputOTPGroup,
@@ -18,6 +19,7 @@ export default function ForgotPassword() {
   const [step, setStep] = useState<'email' | 'otp' | 'reset'>('email');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,26 +29,31 @@ export default function ForgotPassword() {
     if (!email) return;
 
     setIsLoading(true);
-    // Mock API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const result = await passwordApi.forgotPassword({ email });
     setIsLoading(false);
 
-    toast({
-      title: 'OTP Sent',
-      description: 'Check your email for the verification code.',
-    });
-    setStep('otp');
+    if (result.success) {
+      toast({
+        title: 'Reset Code Sent',
+        description: 'Check your email for the verification code.',
+      });
+      setStep('otp');
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: result.error || 'Failed to send reset code. Please try again.',
+      });
+    }
   };
 
   const handleVerifyOtp = async () => {
     if (otp.length !== 6) return;
 
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-
+    // Store the OTP as token for reset password step
+    setResetToken(otp);
     toast({
-      title: 'OTP Verified',
+      title: 'Code Verified',
       description: 'Now set your new password.',
     });
     setStep('reset');
@@ -74,14 +81,22 @@ export default function ForgotPassword() {
     }
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const result = await passwordApi.resetPassword({ token: resetToken, password: newPassword });
     setIsLoading(false);
 
-    toast({
-      title: 'Password Reset',
-      description: 'Your password has been updated successfully.',
-    });
-    navigate('/login');
+    if (result.success) {
+      toast({
+        title: 'Password Reset',
+        description: 'Your password has been updated successfully.',
+      });
+      navigate('/login');
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: result.error || 'Failed to reset password. Please try again.',
+      });
+    }
   };
 
   return (

@@ -55,12 +55,14 @@ export function PostsProvider({ children }: { children: ReactNode }) {
           // Transform backend data to match frontend structure
           const transformedPosts = postsData.map((p: any) => ({
             id: p._id || p.id,
-            imageUrl: p.image?.url || p.imageUrl || '',
+            // Backend returns 'image' as a string URL from Cloudinary
+            imageUrl: p.image || p.imageUrl || '',
             caption: p.description || p.caption || '',
             createdAt: p.createdAt,
             location: {
               address: p.address,
               city: p.location?.city,
+              village: p.location?.village,
               coordinates: p.location?.coordinates ? {
                 lat: p.location.coordinates[1],
                 lng: p.location.coordinates[0]
@@ -71,11 +73,11 @@ export function PostsProvider({ children }: { children: ReactNode }) {
               name: p.user?.name || 'Anonymous',
               avatar: p.user?.avatar
             },
-            likes: p.likesCount || p.likes || 0,
-            likedBy: p.likedBy || [],
+            likes: p.likes?.length || 0,
+            likedBy: (p.likes || []).map((l: any) => l.toString ? l.toString() : l),
             comments: (p.comments || []).map((c: any) => ({
               id: c._id || c.id,
-              text: c.text,
+              text: c.message || c.text,
               user: {
                 id: c.user?._id || c.user?.id || '',
                 name: c.user?.name || 'Anonymous',
@@ -132,10 +134,32 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.success && response.data) {
+        // Backend may return { post: {...} } or the post directly
+        const postData = (response.data as any).post || response.data;
         const newPost: Post = {
-          ...post,
-          id: (response.data as any)._id || (response.data as any).id || Date.now().toString(),
-          createdAt: new Date().toISOString(),
+          id: postData._id || postData.id || Date.now().toString(),
+          // Backend returns 'image' as a string URL from Cloudinary
+          imageUrl: postData.image || post.imageUrl,
+          caption: postData.description || post.caption,
+          createdAt: postData.createdAt || new Date().toISOString(),
+          location: {
+            address: postData.address || post.location?.address,
+            city: postData.location?.city || post.location?.city,
+            coordinates: postData.location?.coordinates ? {
+              lat: postData.location.coordinates[1],
+              lng: postData.location.coordinates[0]
+            } : post.location?.coordinates
+          },
+          user: {
+            id: postData.user?._id || postData.user?.id || post.user.id,
+            name: postData.user?.name || post.user.name,
+            avatar: postData.user?.avatar || post.user.avatar
+          },
+          likes: postData.likesCount || 0,
+          likedBy: postData.likedBy || [],
+          comments: [],
+          status: postData.status || 'unresolved',
+          category: postData.category || post.category,
         };
         setPosts(prev => [newPost, ...prev]);
         return { success: true };
