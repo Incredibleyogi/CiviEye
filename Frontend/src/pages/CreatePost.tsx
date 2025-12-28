@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+
+
 import {
   Select,
   SelectContent,
@@ -76,54 +78,79 @@ export default function CreatePost() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!imagePreview) {
-      toast({
-        variant: 'destructive',
-        title: 'Image required',
-        description: 'Please select an image for your post.',
-      });
-      return;
-    }
+  if (!imagePreview) {
+    toast({
+      variant: 'destructive',
+      title: 'Image required',
+      description: 'Please select an image for your post.',
+    });
+    return;
+  }
 
-    if (!caption.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Caption required',
-        description: 'Please add a caption describing the issue.',
-      });
-      return;
-    }
+  if (!caption.trim()) {
+    toast({
+      variant: 'destructive',
+      title: 'Caption required',
+      description: 'Please add a caption describing the issue.',
+    });
+    return;
+  }
 
-    setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+  setIsSubmitting(true);
 
-    addPost({
-      imageUrl: imagePreview,
-      caption: caption.trim(),
-      location: {
-        address: location.address || undefined,
-        city: location.city || undefined,
-        village: location.village || undefined,
+  try {
+    if (!fileInputRef.current?.files?.[0]) throw new Error('File not selected');
+
+    const file = fileInputRef.current.files[0];
+    const formData = new FormData();
+
+    // Append image
+    formData.append("media", file);
+
+    // Append text fields
+    formData.append("title", caption.trim());
+    formData.append("description", caption.trim());
+    formData.append("category", category);
+
+    // Append location in GeoJSON format
+    formData.append("location", JSON.stringify({
+      type: "Point",
+      coordinates: [parseFloat(location.lng || '0'), parseFloat(location.lat || '0')]
+    }));
+
+    // Append address if any
+    formData.append("address", location.address || '');
+
+    // Call backend API
+    const token = user?.token; // assuming your auth context stores JWT as token
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/posts`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-      user: {
-        id: user?.id || '1',
-        name: user?.name || 'User',
-        avatar: user?.avatar,
-      },
-      likes: 0,
-      likedBy: [],
-      comments: [],
-      status: 'unresolved',
-      category,
+      body: formData,
     });
 
-    setIsSubmitting(false);
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || 'Failed to create post');
+
     toast({ title: 'Issue reported successfully!' });
     navigate('/dashboard');
-  };
+  } catch (err: any) {
+    toast({
+      variant: 'destructive',
+      title: 'Error',
+      description: err.message,
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   return (
     <AppLayout showLogo={false} title="Report Issue">

@@ -15,67 +15,67 @@ const { getIo } = await import("../config/socket.js");
 =========================== */
 export const createPost = async (req, res) => {
   try {
-    const { title, description, category, address } = req.body;
-    let location;
+    const { title, description, category, address, location } = req.body;
 
-    // Parse location safely
-    if (req.body.location) {
-      try {
-        location = typeof req.body.location === "string"
-          ? JSON.parse(req.body.location)
-          : req.body.location;
-      } catch (err) {
-        return res.status(400).json({ message: "Invalid location format" });
-      }
-    } else {
-      return res.status(400).json({ message: "Location is required" });
+    // 1. Basic validation
+    if (!title || !description || !category) {
+      return res.status(400).json({ message: "All fields required" });
     }
 
-    // Validate coordinates
-    if (!location.coordinates || !Array.isArray(location.coordinates)) {
-      return res.status(400).json({ message: "Coordinates are required" });
+    if (!req.user?._id) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Check other required fields
-    if (!title || !description || !category || !address) {
-      return res.status(400).json({ message: "All fields are required" });
+    // 2. Parse & validate location
+    let parsedLocation = location;
+    if (typeof location === "string") {
+      parsedLocation = JSON.parse(location);
     }
 
-    // Check file upload
-    if (!req.file) {
-      return res.status(400).json({ message: "Image file is required" });
+    if (
+      parsedLocation?.type !== "Point" ||
+      !Array.isArray(parsedLocation.coordinates) ||
+      parsedLocation.coordinates.length !== 2
+    ) {
+      return res.status(400).json({ message: "Invalid location format" });
     }
 
-    // Upload image to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "posts",
-    });
+    // 3. Upload image to Cloudinary (if exists)
+    let imageUrls = [];
 
-    // FIX: Get userId properly from both req.user and req.userId
-    const userId = req.userId || req.user?._id || req.user?.id;
+    if (req.file) {
+      const uploadResult = await cloudinary.uploader.upload(
+        `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
+        {
+          folder: "civiceye/posts",
+          resource_type: "image",
+        }
+      );
 
-    // Create Post - FIX: Use 'image' field instead of 'media' to match Post model
-    const newPost = new Post({
+      imageUrls.push(uploadResult.secure_url);
+    }
+
+    // 4. CREATE POST (THIS IS WHERE images: imageUrls GOES)
+    const post = await Post.create({
       title,
       description,
       category,
       address,
-      location,
-      image: result.secure_url, // FIX: Changed from 'media' to 'image'
-      user: userId,
+      location: parsedLocation,
+      user: req.user._id,
+      images: imageUrls, // ✅ IMPORTANT
     });
 
-    const savedPost = await newPost.save();
-    
-    // Populate user before returning
-    await savedPost.populate("user", "name email avatar");
-    
-    res.status(201).json({ post: savedPost });
+    return res.status(201).json({
+      success: true,
+      post,
+    });
   } catch (error) {
     console.error("Create post error:", error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 /* ===========================
    REMAINING CONTROLLERS

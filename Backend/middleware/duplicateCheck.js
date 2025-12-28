@@ -1,26 +1,34 @@
-// middleware/duplicateCheck.js
 import { checkDuplicate } from "../utils/duplicateCheckAI.js";
 
-// Expects req.body.imageBase64 and req.body.location.coordinates and req.body.description
 const duplicateCheck = async (req, res, next) => {
   try {
-    const { imageBase64, location, description } = req.body;
-    let imageBuffer = null;
+    const { description, location } = req.body;
 
-    if (imageBase64) {
-      const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-      imageBuffer = Buffer.from(base64Data, "base64");
+    // 1. Parse location safely
+    let parsedLocation = location;
+    if (typeof location === "string") {
+      parsedLocation = JSON.parse(location);
     }
 
-    const coords = location?.coordinates || [0, 0];
+    const coords =
+      parsedLocation?.coordinates?.length === 2
+        ? parsedLocation.coordinates
+        : null;
 
+    // 2. Get image buffer from multer (if exists)
+    let imageBuffer = null;
+    if (req.file?.buffer) {
+      imageBuffer = req.file.buffer;
+    }
+
+    // 3. Run duplicate check
     const result = await checkDuplicate({
       description,
       imageBuffer,
       locationCoords: coords,
     });
 
-    if (result.isDuplicate) {
+    if (result?.isDuplicate) {
       return res.status(409).json({
         message: "Duplicate issue already reported nearby",
         duplicatePostId: result.post._id,
@@ -30,8 +38,8 @@ const duplicateCheck = async (req, res, next) => {
 
     next();
   } catch (err) {
-    console.error("duplicateCheck err:", err);
-    next(); // on error, allow to continue (safer than blocking)
+    console.error("duplicateCheck error:", err);
+    next(); // never block post creation on AI failure
   }
 };
 
