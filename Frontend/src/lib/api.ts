@@ -23,11 +23,10 @@ async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   const token = getAuthToken();
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
+ const headers: HeadersInit = {
+  ...(options.headers || {}),
+  ...(token && { Authorization: `Bearer ${token}` }),
+};
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -135,8 +134,11 @@ export const profileApi = {
   updateProfile: (data: { name?: string; bio?: string; avatar?: string }) =>
     apiRequest('/auth/update-profile', { method: 'PUT', body: JSON.stringify(data) }),
 
-  updateAvatar: (imageBase64: string) =>
-    apiRequest('/auth/profile/avatar', { method: 'POST', body: JSON.stringify({ imageBase64 }) }),
+updateAvatar: (file: File) => {
+  const formData = new FormData();
+  formData.append('avatar', file);
+  return apiFormRequest('/auth/profile/avatar', formData);
+},
 
   getCurrentUser: () => apiRequest('/auth/me'),
 };
@@ -152,7 +154,7 @@ export interface CreatePostData {
     coordinates: [number, number];
   };
   imageFile?: File;
-  imageBase64?: string;
+ 
 }
 
 export interface DuplicateCheckResponse {
@@ -212,7 +214,7 @@ export const postsApi = {
 
   // Backend expects "text" field, not "comment"
   addComment: (id: string, text: string) =>
-    apiRequest(`/posts/${id}/comment`, { method: 'POST', body: JSON.stringify({ text }) }),
+    apiRequest(`/posts/${id}/comments`, { method: 'POST', body: JSON.stringify({ text }) }),
 
   getComments: (id: string) => apiRequest(`/posts/${id}/comments`),
 };

@@ -29,7 +29,7 @@ router.post(
   "/",
   protect,
   upload.single("media"),
-  duplicateCheck,
+  duplicateCheck,                  
   createPost
 );
 

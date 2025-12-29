@@ -11,9 +11,12 @@ const duplicateCheck = async (req, res, next) => {
     }
 
     const coords =
-      parsedLocation?.coordinates?.length === 2
-        ? parsedLocation.coordinates
-        : null;
+  Array.isArray(parsedLocation?.coordinates) &&
+  parsedLocation.coordinates.length === 2 &&
+  typeof parsedLocation.coordinates[0] === "number" &&
+  typeof parsedLocation.coordinates[1] === "number"
+    ? parsedLocation.coordinates
+    : null;
 
     // 2. Get image buffer from multer (if exists)
     let imageBuffer = null;
