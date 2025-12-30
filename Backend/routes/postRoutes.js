@@ -38,7 +38,7 @@ router.post(
  READ
 =====================
 */
-router.get("/nearby", getNearbyPosts);
+router.get("/", getNearbyPosts);      /////
 router.get("/my-posts", protect, getMyPosts);
 router.get("/:id", getPost);
 

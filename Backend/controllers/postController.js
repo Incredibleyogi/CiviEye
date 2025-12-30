@@ -65,6 +65,8 @@ export const createPost = async (req, res) => {
       location: parsedLocation,
       user: req.user._id,
       images: imageUrls, // ✅ IMPORTANT
+      status: "Unresolved",
+      mediaType: req.file ? "image" : "video",
     });
 
     return res.status(201).json({
@@ -86,7 +88,7 @@ export const getNearbyPosts = async (req, res) => {
   try {
     const lng = parseFloat(req.query.lng);
     const lat = parseFloat(req.query.lat);
-    const radius = parseInt(req.query.radius || "500", 10);
+    const radius = parseInt(req.query.radius || "5000", 10);
 
     if (isNaN(lng) || isNaN(lat)) {
       const posts = await Post.find()
