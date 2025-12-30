@@ -25,6 +25,7 @@ const PostsContext = createContext<PostsContextType | undefined>(undefined);
 
 export function PostsProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [myPosts, setMyPosts] = useState<Post[]>([]);  // Not used currently
   const [loading, setLoading] = useState(true);
   const { user, isAuthenticated } = useAuth();
 

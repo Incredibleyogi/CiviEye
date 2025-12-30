@@ -43,34 +43,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const response = await authApi.login({ email, password });
-      
-      if (response.success && response.data) {
-        const { token: authToken, user: userData } = response.data as { token: string; user: any };
-        // Transform backend user to frontend User type
-        const userObj: User = {
-          id: userData._id || userData.id,
-          name: userData.name,
-          email: userData.email,
-          avatar: userData.avatar || userData.profilePic,
-          bio: userData.bio,
-          role: userData.role || 'user' as UserRole,
-        };
-        setToken(authToken);
-        setUser(userObj);
-        localStorage.setItem('civiceye_token', authToken);
-        localStorage.setItem('civiceye_user', JSON.stringify(userObj));
-        return { success: true };
-      }
-      
-      return { success: false, error: response.error || 'Login failed' };
-    } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, error: 'Network error' };
+ const login = async (email: string, password: string) => {
+  try {
+    const res = await authApi.login({ email, password });
+
+    if (!res.success || !res.data) {
+      return { success: false, error: res.error || 'Login failed' };
     }
-  };
+
+    const backendData = res.data as any;
+
+    if (!backendData.token || !backendData.user) {
+      return { success: false, error: 'Invalid login response' };
+    }
+
+    const userObj: User = {
+      id: backendData.user._id,
+      name: backendData.user.name,
+      email: backendData.user.email,
+      avatar: backendData.user.avatar,
+      bio: backendData.user.bio,
+      role: backendData.user.role || 'user',
+    };
+
+    setToken(backendData.token);
+    setUser(userObj);
+
+    localStorage.setItem('civiceye_token', backendData.token);
+    localStorage.setItem('civiceye_user', JSON.stringify(userObj));
+
+    return { success: true };
+  } catch (err) {
+    console.error('Login error:', err);
+    return { success: false, error: 'Network error' };
+  }
+};
+
 
   const signup = async (name: string, email: string, password: string, confirmPassword: string): Promise<{ success: boolean; error?: string }> => {
     try {

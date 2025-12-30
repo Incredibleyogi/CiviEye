@@ -13,7 +13,7 @@ interface ApiResponse<T = unknown> {
 
 // Helper to get auth token
 const getAuthToken = (): string | null => {
-  return localStorage.getItem('civiceye_token');
+  return localStorage.getItem('token');
 };
 
 // Generic fetch wrapper
@@ -23,7 +23,8 @@ async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   const token = getAuthToken();
 
- const headers: HeadersInit = {
+const headers: HeadersInit = {
+  'Content-Type': 'application/json',
   ...(options.headers || {}),
   ...(token && { Authorization: `Bearer ${token}` }),
 };
@@ -154,7 +155,7 @@ export interface CreatePostData {
     coordinates: [number, number];
   };
   imageFile?: File;
- 
+ imageBase64?: string; // Optional base64 string for image
 }
 
 export interface DuplicateCheckResponse {

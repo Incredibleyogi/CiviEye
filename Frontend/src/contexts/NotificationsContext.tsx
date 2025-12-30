@@ -60,8 +60,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   // Initialize Socket.IO connection
   useEffect(() => {
     if (isAuthenticated && user?.id) {
+      const token = localStorage.getItem("token");     ////
       const newSocket = io(API_ORIGIN, {
+         
         transports: ['websocket', 'polling'],
+         auth: { token },
       });
 
       newSocket.on('connect', () => {
@@ -202,4 +205,3 @@ export function useNotifications() {
   }
   return context;
 }
-
