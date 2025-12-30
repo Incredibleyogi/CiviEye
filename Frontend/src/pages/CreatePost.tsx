@@ -126,7 +126,7 @@ export default function CreatePost() {
 
     // Call backend API
     const token = user?.token; // assuming your auth context stores JWT as token
-    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/posts`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/posts`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

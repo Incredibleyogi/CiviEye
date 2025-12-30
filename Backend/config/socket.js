@@ -14,6 +14,7 @@ export const initSocket = (server) => {
     console.log("Socket connected:", socket.id);
 
     socket.on("register", (userId) => {
+       
       if (!userId) return;
       if (!onlineUsers[userId]) onlineUsers[userId] = [];
       if (!onlineUsers[userId].includes(socket.id)) onlineUsers[userId].push(socket.id);

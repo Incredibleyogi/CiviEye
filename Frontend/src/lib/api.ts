@@ -2,7 +2,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Socket.IO server origin (API url without the trailing "/api")
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 interface ApiResponse<T = unknown> {
   success: boolean;
