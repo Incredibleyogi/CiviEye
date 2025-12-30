@@ -2,7 +2,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Socket.IO server origin (API url without the trailing "/api")
-export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+ const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -13,7 +13,7 @@ interface ApiResponse<T = unknown> {
 
 // Helper to get auth token
 const getAuthToken = (): string | null => {
-  return localStorage.getItem('token');
+  return localStorage.getItem('civiceye_token');
 };
 
 // Generic fetch wrapper
