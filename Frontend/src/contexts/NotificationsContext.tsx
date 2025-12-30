@@ -60,7 +60,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   // Initialize Socket.IO connection
   useEffect(() => {
     if (isAuthenticated && user?.id) {
-      const token = localStorage.getItem("civiceye_token");     ////
+      const token = localStorage.getItem('civiceye_token');     ////
       const newSocket = io(API_ORIGIN, {
          
         transports: ['websocket', 'polling'],

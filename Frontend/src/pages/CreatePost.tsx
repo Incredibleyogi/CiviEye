@@ -125,8 +125,9 @@ export default function CreatePost() {
     formData.append("address", location.address || '');
 
     // Call backend API
-    const token = user?.token; // assuming your auth context stores JWT as token
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/posts`, {
+    const token = localStorage.getItem('civiceye_token');  // Get auth token
+
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/posts`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
