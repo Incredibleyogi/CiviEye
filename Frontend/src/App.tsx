@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PostsProvider } from "@/contexts/PostsContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 
 import Index from "./pages/Index";
 import Signup from "./pages/Signup";
@@ -42,6 +43,7 @@ function AppRoutes() {
       <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
       <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -50,6 +52,7 @@ function AppRoutes() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <SocketProvider>
       <AuthProvider>
         <PostsProvider>
           <NotificationsProvider>
@@ -61,6 +64,7 @@ const App = () => (
           </NotificationsProvider>
         </PostsProvider>
       </AuthProvider>
+      </SocketProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

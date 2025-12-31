@@ -17,6 +17,7 @@ interface EditProfileDialogProps {
 
 export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps) {
   const { user, updateProfile } = useAuth();
+
   const { updateUserInPosts } = usePosts();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);

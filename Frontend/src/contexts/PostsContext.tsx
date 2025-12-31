@@ -6,9 +6,50 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { Post, Comment, IssueStatus, IssueCategory } from '@/types';
 import { postsApi } from '@/lib/api';
-import { useAuth } from './AuthContext';
+
+// Types
+export type IssueStatus = 'unresolved' | 'in_progress' | 'resolved';
+export type IssueCategory = 'roads' | 'water' | 'electricity' | 'sanitation' | 'other';
+
+export interface Comment {
+  id: string;
+  text: string;
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  createdAt: string;
+}
+
+export interface Post {
+  id: string;
+  imageUrl: string;
+  caption: string;
+  createdAt: string;
+  location: {
+    address?: string;
+    city?: string;
+    village?: string;
+    coordinates?: { lat: number; lng: number };
+  };
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  likes: number;
+  likedBy: string[];
+  comments: Comment[];
+  status: IssueStatus;
+  category: IssueCategory;
+  adminResponse?: {
+    message: string;
+    respondedAt: string;
+    adminName: string;
+  };
+}
 
 interface PostsContextType {
   posts: Post[];
@@ -31,9 +72,11 @@ interface PostsContextType {
 const PostsContext = createContext<PostsContextType | undefined>(undefined);
 
 /* -------------------- NORMALIZER -------------------- */
+// FIX: Handle both 'image' (string) and 'images' (array) from backend
 const normalizePost = (p: any): Post => ({
   id: p._id || p.id,
-  imageUrl: p.image || p.imageUrl || '',
+  // FIX: Backend uses 'image' field (singular) or 'images' array
+  imageUrl: p.image || (Array.isArray(p.images) ? p.images[0] : '') || p.imageUrl || '',
   caption: p.description || p.caption || '',
   createdAt: p.createdAt,
   location: {
@@ -61,15 +104,15 @@ const normalizePost = (p: any): Post => ({
     },
     createdAt: c.createdAt,
   })),
-  status: p.status || 'unresolved',
-  category: p.category || 'other',
+  // FIX: Normalize status to lowercase to match frontend expectations
+  status: (p.status || 'unresolved').toLowerCase().replace(' ', '_') as IssueStatus,
+  category: (p.category || 'other') as IssueCategory,
   adminResponse: p.adminResponse,
 });
 
 export function PostsProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated } = useAuth();
 
   /* -------------------- FETCH POSTS -------------------- */
   const fetchPosts = useCallback(async () => {
@@ -87,15 +130,25 @@ export function PostsProvider({ children }: { children: ReactNode }) {
           lat = pos.coords.latitude;
           lng = pos.coords.longitude;
         } catch {
-          /* fallback to all posts */
+          console.log('Geolocation not available, fetching all posts');
         }
       }
 
-      const res = await postsApi.getNearby({ lat, lng, radius: 50 });
+      const res = await postsApi.getNearby({ lat, lng, radius: 50000 });
+      console.log('Posts API response:', res);
 
-      if (res.success && Array.isArray(res.data)) {
-        setPosts(res.data.map(normalizePost));
+      // FIX: Backend returns { posts: [...] }, so access res.data.posts
+      if (res.success && res.data) {
+        const postsArray = res.data.posts || res.data;
+        if (Array.isArray(postsArray)) {
+          setPosts(postsArray.map(normalizePost));
+          console.log('Posts loaded:', postsArray.length);
+        } else {
+          console.warn('Unexpected posts data format:', res.data);
+          setPosts([]);
+        }
       } else {
+        console.error('Failed to fetch posts:', res.error);
         setPosts([]);
       }
     } catch (e) {
@@ -107,12 +160,8 @@ export function PostsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) fetchPosts();
-    else {
-      setPosts([]);
-      setLoading(false);
-    }
-  }, [isAuthenticated, fetchPosts]);
+    fetchPosts();
+  }, [fetchPosts]);
 
   /* -------------------- ACTIONS -------------------- */
 
@@ -140,7 +189,9 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       });
 
       if (res.success && res.data) {
-        const normalized = normalizePost(res.data);
+        // FIX: Backend returns { success: true, post: {...} }
+        const postData = (res.data as any).post || res.data;
+        const normalized = normalizePost(postData);
         setPosts(prev => [normalized, ...prev]);
         return { success: true };
       }

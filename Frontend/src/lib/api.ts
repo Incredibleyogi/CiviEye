@@ -2,7 +2,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Socket.IO server origin (API url without the trailing "/api")
- const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -23,11 +23,11 @@ async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   const token = getAuthToken();
 
-const headers: HeadersInit = {
-  'Content-Type': 'application/json',
-  ...(options.headers || {}),
-  ...(token && { Authorization: `Bearer ${token}` }),
-};
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -45,12 +45,11 @@ const headers: HeadersInit = {
       };
     }
 
-   return {
-  success: data.success ?? true,
-  data: data.data ?? data,
-  message: data.message,
-};
-
+    return {
+      success: data.success ?? true,
+      data: data.data ?? data,
+      message: data.message,
+    };
   } catch (error) {
     console.error('API Error:', error);
     return {
@@ -87,11 +86,11 @@ async function apiFormRequest<T>(
       };
     }
 
-   return {
-  success: data.success ?? true,
-  data: data.data ?? data,
-  message: data.message,
-};
+    return {
+      success: data.success ?? true,
+      data: data.data ?? data,
+      message: data.message,
+    };
   } catch (error) {
     console.error('API Error:', error);
     return {
@@ -136,11 +135,11 @@ export const profileApi = {
   updateProfile: (data: { name?: string; bio?: string; avatar?: string }) =>
     apiRequest('/auth/update-profile', { method: 'PUT', body: JSON.stringify(data) }),
 
-updateAvatar: (file: File) => {
-  const formData = new FormData();
-  formData.append('avatar', file);
-  return apiFormRequest('/auth/profile/avatar', formData);
-},
+  updateAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return apiFormRequest('/auth/profile/avatar', formData);
+  },
 
   getCurrentUser: () => apiRequest('/auth/me'),
 };
@@ -156,7 +155,11 @@ export interface CreatePostData {
     coordinates: [number, number];
   };
   imageFile?: File;
- imageBase64?: string; // Optional base64 string for image
+  imageBase64?: string;
+}
+
+export interface PostsResponse {
+  posts: unknown[];
 }
 
 export interface DuplicateCheckResponse {
@@ -187,12 +190,13 @@ async function createPostFormData(data: CreatePostData): Promise<FormData> {
   return formData;
 }
 
-export const postsApi = {         
+export const postsApi = {
   create: async (data: CreatePostData) => {
     const formData = await createPostFormData(data);
     return apiFormRequest('/posts/', formData);
   },
 
+  // FIX: Return type includes { posts: [...] } structure
   getNearby: (params?: { lat?: number; lng?: number; radius?: number; category?: string; status?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.lat) searchParams.append('lat', params.lat.toString());
@@ -200,12 +204,14 @@ export const postsApi = {
     if (params?.radius) searchParams.append('radius', params.radius.toString());
     if (params?.category) searchParams.append('category', params.category);
     if (params?.status) searchParams.append('status', params.status);
-    return apiRequest(`/posts/nearby?${searchParams.toString()}`);
+    const queryString = searchParams.toString();
+    return apiRequest<PostsResponse>(`/posts/${queryString ? `?${queryString}` : ''}`);
   },
 
   getById: (id: string) => apiRequest(`/posts/${id}`),
 
-  getMyPosts: () => apiRequest('/posts/my-posts'),
+  // FIX: Return type includes { posts: [...] } structure
+  getMyPosts: () => apiRequest<PostsResponse>('/posts/my-posts'),
 
   delete: (id: string) => apiRequest(`/posts/${id}`, { method: 'DELETE' }),
 
@@ -214,9 +220,9 @@ export const postsApi = {
 
   like: (id: string) => apiRequest(`/posts/${id}/like`, { method: 'POST' }),
 
-  // Backend expects "text" field, not "comment"
+  // FIX: Backend route is /:id/comment (singular), not /comments
   addComment: (id: string, text: string) =>
-    apiRequest(`/posts/${id}/comments`, { method: 'POST', body: JSON.stringify({ text }) }),
+    apiRequest(`/posts/${id}/comment`, { method: 'POST', body: JSON.stringify({ text }) }),
 
   getComments: (id: string) => apiRequest(`/posts/${id}/comments`),
 };
@@ -225,7 +231,6 @@ export const postsApi = {
 export const notificationsApi = {
   getAll: () => apiRequest('/notifications'),
 
-  // Backend expects { ids: [...] } array format
   markRead: (id: string) =>
     apiRequest('/notifications/mark-read', { method: 'POST', body: JSON.stringify({ ids: [id] }) }),
 
@@ -235,4 +240,4 @@ export const notificationsApi = {
   getCount: () => apiRequest('/notifications/count'),
 };
 
-export { API_BASE_URL, API_ORIGIN };
+export { API_BASE_URL };

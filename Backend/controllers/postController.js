@@ -64,7 +64,7 @@ export const createPost = async (req, res) => {
       address,
       location: parsedLocation,
       user: req.user._id,
-      images: imageUrls, // ✅ IMPORTANT
+      image: imageUrls[0], // ✅ IMPORTANT
       status: "Unresolved",
       mediaType: req.file ? "image" : "video",
     });
