@@ -45,11 +45,12 @@ const headers: HeadersInit = {
       };
     }
 
-    return {
-      success: true,
-      data,
-      message: data.message,
-    };
+   return {
+  success: data.success ?? true,
+  data: data.data ?? data,
+  message: data.message,
+};
+
   } catch (error) {
     console.error('API Error:', error);
     return {
@@ -86,11 +87,11 @@ async function apiFormRequest<T>(
       };
     }
 
-    return {
-      success: true,
-      data,
-      message: data.message,
-    };
+   return {
+  success: data.success ?? true,
+  data: data.data ?? data,
+  message: data.message,
+};
   } catch (error) {
     console.error('API Error:', error);
     return {
@@ -186,7 +187,7 @@ async function createPostFormData(data: CreatePostData): Promise<FormData> {
   return formData;
 }
 
-export const postsApi = {
+export const postsApi = {         
   create: async (data: CreatePostData) => {
     const formData = await createPostFormData(data);
     return apiFormRequest('/posts/', formData);

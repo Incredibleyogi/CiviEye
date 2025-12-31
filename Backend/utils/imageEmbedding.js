@@ -1,87 +1,50 @@
-// utils/imageEmbedding.js
-import sharp from "sharp";
+import * as tf from '@tensorflow/tfjs';
+import * as mobilenet from '@tensorflow-models/mobilenet';
+import sharp from 'sharp';
 
-let tf = null;
-let usingNodeBindings = false;
+let model;
 
-async function ensureTf() {
-  if (tf) return;
-  try {
-    const mod = await import("@tensorflow/tfjs-node");
-    tf = mod;
-    usingNodeBindings = true;
-    console.log("Using @tensorflow/tfjs-node (native bindings)");
-  } catch (err) {
-    console.warn(
-      "@tensorflow/tfjs-node not available, falling back to @tensorflow/tfjs",
-      err.message || err
-    );
-    const mod = await import("@tensorflow/tfjs");
-    tf = mod;
-    usingNodeBindings = false;
+async function loadModel() {
+  if (!model) {
+    model = await mobilenet.load({ version: 2, alpha: 1.0 });
+    console.log("✅ MobileNet loaded (tfjs)");
   }
+  return model;
 }
 
 /**
- * Loads MobileNet once and caches the model.
- */
-let mobilenetModel = null;
-const loadModel = async () => {
-  await ensureTf();
-  if (mobilenetModel) return mobilenetModel;
-  mobilenetModel = await tf.loadGraphModel(
-    "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v2_1.0_224/model.json"
-  );
-  return mobilenetModel;
-};
-
-/**
- * Convert image buffer to tensor resized to 224x224 and normalized,
- * then get embeddings from the model
+ * @param {Buffer} imageBuffer - req.file.buffer
  */
 export const getImageEmbedding = async (imageBuffer) => {
-  const model = await loadModel();
+  try {
+    // Decode image using sharp
+    const { data, info } = await sharp(imageBuffer)
+      .resize(224, 224)
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
 
-  // Use sharp to resize & convert to 224x224 RGB
-  // For node-bindings path we still use sharp to ensure consistent sizing
-  const resized = await sharp(imageBuffer)
-    .resize(224, 224, { fit: "cover" })
-    .ensureAlpha() // make sure channels predictable
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+    // Create tensor from raw pixels
+    const imageTensor = tf.tensor3d(
+      new Uint8Array(data),
+      [info.height, info.width, info.channels]
+    );
 
-  const { data, info } = resized; // data = raw pixel buffer, info = { width, height, channels }
-  const { width, height, channels } = info;
+    const input = imageTensor
+      .expandDims(0)
+      .toFloat()
+      .div(255);
 
-  // Create tensor depending on environment
-  let decodedTensor;
-  await ensureTf();
-  if (usingNodeBindings && tf.node && typeof tf.node.decodeImage === "function") {
-    // If native bindings available, we can feed a PNG/JPEG buffer into decodeImage.
-    // We already have raw pixel buffer, so create tensor directly:
-    decodedTensor = tf.tensor3d(new Uint8Array(data), [height, width, channels], "int32");
-  } else {
-    // Fallback: build tensor from raw pixel data returned by sharp
-    decodedTensor = tf.tensor3d(new Uint8Array(data), [height, width, channels], "int32");
-  }
+    const net = await loadModel();
+    const embedding = net.infer(input, true);
 
-  // If there is an alpha channel, drop it to keep 3 channels (RGB)
-  let rgbTensor = decodedTensor;
-  if (channels === 4) {
-    // take only first three channels
-    rgbTensor = tf.slice(decodedTensor, [0, 0, 0], [height, width, 3]);
-    decodedTensor.dispose();
-  }
+    const vector = Array.from(await embedding.data());
 
-  const expanded = rgbTensor.expandDims(0).toFloat().div(127.5).sub(1); // normalize [-1,1]
+    tf.dispose([imageTensor, input, embedding]);
 
-  const embeddingsTensor = model.predict(expanded);
-  const dataArr = await embeddingsTensor.data();
-  tf.dispose([rgbTensor, expanded, embeddingsTensor]);
-
-  // normalize vector
-  const arr = Array.from(dataArr);
-  const norm = Math.sqrt(arr.reduce((s, v) => s + v * v, 0)) || 1;
-  const normalized = arr.map((v) => v / norm);
-  return normalized;
+    return vector;
+  } catch (error) {
+  console.error("❌ Image embedding failed:", error.message);
+  return []; // fail gracefully
+}
 };

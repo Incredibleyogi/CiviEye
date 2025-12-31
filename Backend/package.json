@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@huggingface/inference": "^4.13.5",
+    "@tensorflow-models/mobilenet": "^2.1.1",
     "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",

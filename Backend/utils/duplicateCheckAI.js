@@ -47,8 +47,8 @@ export const checkDuplicate = async ({
   imageBuffer = null,
   locationCoords = [0, 0],
   radius = 200,
-  imageSimThreshold = 0.80,
-  textSimThreshold = 0.70,
+  imageSimThreshold = 0.85,
+  textSimThreshold = 0.80,
 }) => {
   try {
     // compute embeddings (text + image if available)
