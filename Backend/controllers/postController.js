@@ -68,6 +68,16 @@ export const createPost = async (req, res) => {
       status: "Unresolved",
       mediaType: req.file ? "image" : "video",
     });
+    const allUsers = await User.find({}, "_id");
+
+await createAndSendNotification(
+  allUsers.map(u => u._id.toString()),
+  {
+    title: "New Civic Issue Reported",
+    message: post.title,
+    data: { postId: post._id },
+  }
+);
 
     return res.status(201).json({
       success: true,
@@ -86,26 +96,8 @@ export const createPost = async (req, res) => {
 
 export const getNearbyPosts = async (req, res) => {
   try {
-    const lng = parseFloat(req.query.lng);
-    const lat = parseFloat(req.query.lat);
-    const radius = parseInt(req.query.radius || "5000", 10);
-
-    if (isNaN(lng) || isNaN(lat)) {
-      const posts = await Post.find()
-        .sort({ createdAt: -1 })
-        .limit(200)
-        .populate("user", "name email avatar");
-      return res.json({ posts });
-    }
-
-    const posts = await Post.find({
-      location: {
-        $near: {
-          $geometry: { type: "Point", coordinates: [lng, lat] },
-          $maxDistance: radius,
-        },
-      },
-    })
+    const posts = await Post.find()
+      .sort({ createdAt: -1 })
       .limit(200)
       .populate("user", "name email avatar");
 

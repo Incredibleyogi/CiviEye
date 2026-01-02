@@ -17,6 +17,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Initialize socket connection
     const socketInstance = io(API_ORIGIN, {
+      
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,
