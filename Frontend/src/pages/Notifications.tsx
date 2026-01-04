@@ -36,7 +36,7 @@ export default function Notifications() {
           </div>
         ) : (
           notifications.map((notification) => {
-            const Icon = NOTIFICATION_ICONS[notification.type];
+            const Icon = NOTIFICATION_ICONS[notification.type as keyof typeof NOTIFICATION_ICONS] || Bell;
             return (
               <div
                 key={notification.id}

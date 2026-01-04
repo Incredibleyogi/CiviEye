@@ -7,6 +7,7 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  bio?: string;
   role?: string;
 }
 
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: userData.name,
               email: userData.email,
               avatar: userData.avatar,
+              bio: userData.bio,
               role: userData.role,
             });
           } else {

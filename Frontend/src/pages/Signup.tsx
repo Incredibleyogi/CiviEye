@@ -96,7 +96,8 @@ export default function Signup() {
 
     setIsLoading(true);
 
-    const result = await signup(name, email, password, confirmPassword);
+    const result = await signup({ name, email, password, confirmPassword });
+
     setIsLoading(false);
 
     if (result.success) {

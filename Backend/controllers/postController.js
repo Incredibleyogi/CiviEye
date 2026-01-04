@@ -68,16 +68,19 @@ export const createPost = async (req, res) => {
       status: "Unresolved",
       mediaType: req.file ? "image" : "video",
     });
-    const allUsers = await User.find({}, "_id");
+   // Send notification to all users EXCEPT the creator
+const allUsers = await User.find({ _id: { $ne: req.user._id } }, "_id");
 
 await createAndSendNotification(
   allUsers.map(u => u._id.toString()),
   {
     title: "New Civic Issue Reported",
-    message: post.title,
+    message: `${post.title} reported near ${address || 'your area'}`,
+    type: "nearby_post",
     data: { postId: post._id },
   }
 );
+
 
     return res.status(201).json({
       success: true,

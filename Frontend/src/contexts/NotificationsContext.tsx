@@ -9,6 +9,7 @@ export interface Notification {
   message: string;
   read: boolean;
   createdAt: string;
+  type?: 'like' | 'comment' | 'status_update' | 'admin_response' | 'nearby_post';
   data?: {
     postId?: string;
   };
@@ -31,8 +32,10 @@ const normalizeNotification = (n: any): Notification => ({
   message: n.message,
   read: n.read || false,
   createdAt: n.createdAt,
+  type: n.type || 'nearby_post',  // ADD THIS - default to nearby_post
   data: n.data,
 });
+
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
