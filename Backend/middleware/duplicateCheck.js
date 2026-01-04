@@ -34,6 +34,7 @@ const duplicateCheck = async (req, res, next) => {
     if (result?.isDuplicate) {
       return res.status(409).json({
         message: "Duplicate issue already reported nearby",
+         duplicateImageUrl: result.post.media?.[0] || result.post.imageUrl,
         duplicatePostId: result.post._id,
         reason: result.reasons,
       });

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { authApi, profileApi } from '@/lib/api';
+import { authApi, profileApi, passwordApi } from '@/lib/api';
 import { useSocket } from './SocketContext';
 
 export interface User {
@@ -20,6 +20,8 @@ interface AuthContextType {
   signup: (data: { name: string; email: string; password: string; confirmPassword: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
+  updateProfile: (data: { name?: string; bio?: string; avatar?: string }) => Promise<boolean>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: userData.name,
           email: userData.email,
           avatar: userData.avatar,
+          bio: userData.bio,
           role: userData.role,
         });
         return { success: true };
@@ -107,6 +110,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(prev => prev ? { ...prev, ...updates } : null);
   }, []);
 
+  const updateProfile = useCallback(async (data: { name?: string; bio?: string; avatar?: string }) => {
+    try {
+      const res = await profileApi.updateProfile(data);
+      if (res.success && res.data) {
+        const userData = (res.data as any).user || res.data;
+        setUser(prev => prev ? {
+          ...prev,
+          name: userData.name || prev.name,
+          bio: userData.bio || prev.bio,
+          avatar: userData.avatar || prev.avatar,
+        } : null);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const updatePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    try {
+      const res = await passwordApi.changePassword({ currentPassword, newPassword });
+      return res.success;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
 
@@ -121,6 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         updateUser,
+        updateProfile,
+        updatePassword,
       }}
     >
       {children}

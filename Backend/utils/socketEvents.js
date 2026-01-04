@@ -14,6 +14,7 @@ export const createAndSendNotification = async (userIds, data) => {
       user: userId,
       title: data.title,
       message: data.message,
+      type: data.type || 'nearby_post',
       data: data.data || {},
     });
 
