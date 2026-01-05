@@ -16,6 +16,7 @@ import passRoutes from "./routes/passroutes.js";
 import AdminRoutes from "./routes/AdminRoutes.js";
 
 const app = express();
+app.disable('etag');
 
 // Middleware
 app.use(express.json({ limit: "20mb" }));

@@ -25,7 +25,7 @@ export const markRead = async (req, res) => {
 
     await Notification.updateMany(
       { _id: { $in: ids }, user: userId },
-      { $set: { read: true } }
+      { $set: { isRead: true } }
     );
 
     res.json({ message: "Marked read" });

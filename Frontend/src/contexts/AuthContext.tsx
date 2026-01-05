@@ -18,6 +18,8 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (data: { name: string; email: string; password: string; confirmPassword: string }) => Promise<{ success: boolean; error?: string }>;
+    verifyOtp: (otp: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  resendOtp: () => Promise<{ success: boolean; error?: string; message?: string }>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   updateProfile: (data: { name?: string; bio?: string; avatar?: string }) => Promise<boolean>;
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { registerUser, isConnected } = useSocket();
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   // Register user with socket when authenticated
   useEffect(() => {
@@ -92,14 +95,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = useCallback(async (data: { name: string; email: string; password: string; confirmPassword: string }) => {
     try {
       const res = await authApi.signup(data);
-      if (res.success) {
-        return { success: true };
-      }
+     if (res.success) {
+  setPendingEmail(data.email); // ✅ STORE EMAIL FOR OTP
+  return { success: true };
+}
       return { success: false, error: res.error || 'Signup failed' };
     } catch {
       return { success: false, error: 'Signup failed' };
     }
   }, []);
+
+ const verifyOtp = useCallback(async (otp: string) => {
+  if (!pendingEmail) {
+    return {
+      success: false,
+      error: 'Email missing. Please sign up again.',
+    };
+  }
+
+  try {
+    const res = await authApi.verifyOtp({
+      email: pendingEmail,
+      otp,
+    });
+    return res;
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'OTP verification failed',
+    };
+  }
+}, [pendingEmail]);
+
+
+const resendOtp = useCallback(async () => {
+  if (!pendingEmail) {
+    return {
+      success: false,
+      error: 'Email missing. Please sign up again.',
+    };
+  }
+
+  try {
+    const res = await authApi.resendOtp({
+      email: pendingEmail,
+    });
+    return res;
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to resend OTP',
+    };
+  }
+}, [pendingEmail]);
+
+ 
 
   const logout = useCallback(() => {
     localStorage.removeItem('civiceye_token');
@@ -148,6 +198,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         isAdmin,
         loading,
+        verifyOtp,
+    resendOtp,
         login,
         signup,
         logout,

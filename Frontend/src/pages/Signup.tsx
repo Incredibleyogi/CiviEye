@@ -116,14 +116,16 @@ export default function Signup() {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) return;
-    
-    setIsLoading(true);
-    const result = await verifyOtp(otp);
-    setIsLoading(false);
+ const handleVerifyOtp = async () => {
+  if (otp.length !== 6 || isLoading) return;
 
-    if (result.success) {
+  setIsLoading(true);
+
+  try {
+    const result = await verifyOtp(otp);
+
+    // ✅ FIX: treat 304 / empty response as success
+    if (result.success || result.message === 'Not modified') {
       toast({
         title: 'Account verified!',
         description: 'You can now log in to your account.',
@@ -136,16 +138,29 @@ export default function Signup() {
         description: result.error || 'Invalid OTP code. Please try again.',
       });
     }
-  };
+  } catch (error) {
+    toast({
+      variant: 'destructive',
+      title: 'Error',
+      description: 'Something went wrong while verifying OTP.',
+    });
+  } finally {
+    // ✅ FIX: always stop loading
+    setIsLoading(false);
+  }
+};
+
 
   const handleResendOtp = async () => {
-    if (resendCooldown > 0) return;
+  if (resendCooldown > 0 || isLoading) return;
 
-    setIsLoading(true);
+  setIsLoading(true);
+
+  try {
     const result = await resendOtp();
-    setIsLoading(false);
 
-    if (result.success) {
+    // ✅ FIX: accept 304 as success
+    if (result.success || result.message === 'Not modified') {
       toast({
         title: 'OTP Resent!',
         description: 'Please check your email for the new OTP code.',
@@ -158,7 +173,18 @@ export default function Signup() {
         description: result.error || 'Please try again later.',
       });
     }
-  };
+  } catch (error) {
+    toast({
+      variant: 'destructive',
+      title: 'Error',
+      description: 'Failed to resend OTP.',
+    });
+  } finally {
+    // ✅ FIX: loading never sticks
+    setIsLoading(false);
+  }
+};
+
 
   const handleGoogleSignup = async () => {
     setIsGoogleLoading(true);

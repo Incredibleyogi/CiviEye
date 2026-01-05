@@ -90,7 +90,8 @@ export default function ForgotPassword() {
         description: 'Your password has been updated successfully.',
       });
       navigate('/login');
-    } else {
+    } 
+    else {
       toast({
         variant: 'destructive',
         title: 'Error',

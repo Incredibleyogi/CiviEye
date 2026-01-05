@@ -6,7 +6,7 @@ const notificationSchema = new mongoose.Schema({
   message: { type: String, required: true },
    type: { type: String, enum: ['like', 'comment', 'status_update', 'admin_response', 'nearby_post'], default: 'nearby_post' },
   data: { type: Object, default: {} }, // extra payload like { postId }
-  read: { type: Boolean, default: false },
+  isRead: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 

@@ -35,13 +35,28 @@ async function apiRequest<T>(
       headers,
     });
 
-    const data = await response.json();
+    
+  // ✅ HANDLE 304 EXPLICITLY
+  if (response.status === 304) {
+    return {
+      success: true,
+      data: undefined, // caller must keep previous state
+      message: 'Not modified',
+    };
+  }
+
+     let data: any = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
 
     if (!response.ok) {
       return {
         success: false,
-        error: data.message || 'Request failed',
-        message: data.message,
+        error: data?.message || 'Request failed',
+        message: data?.message,
       };
     }
 

@@ -2,27 +2,32 @@
 import Notification from "../models/Notification.js";
 import { getIo, onlineUsers } from "../config/socket.js";
 
-/**
- * Create notification in DB + send in realtime if user online
- */
 export const createAndSendNotification = async (userIds, data) => {
-  const io = getIo();
   if (!Array.isArray(userIds)) userIds = [userIds];
+  if (!userIds.length) return;
 
-  for (const userId of userIds) {
-    const note = await Notification.create({
-      user: userId,
-      title: data.title,
-      message: data.message,
-      type: data.type || 'nearby_post',
-      data: data.data || {},
-    });
+  const io = getIo();
 
-    if (!io) continue;
+  // 1️⃣ Prepare notifications
+  const notifications = userIds.map(userId => ({
+    user: userId,
+    title: data.title,
+    message: data.message,
+    type: data.type || "nearby_post",
+    data: data.data || {},
+    isRead: false,
+  }));
 
-    const sockets = onlineUsers[userId];
+  // 2️⃣ Insert ALL at once (atomic)
+  const savedNotifications = await Notification.insertMany(notifications);
+
+  // 3️⃣ Emit socket events (if online)
+  if (!io) return;
+
+  for (const note of savedNotifications) {
+    const sockets = onlineUsers[note.user?.toString()];
     if (sockets?.length) {
-      sockets.forEach((sockId) => {
+      sockets.forEach(sockId => {
         io.to(sockId).emit("notification", note);
       });
     }

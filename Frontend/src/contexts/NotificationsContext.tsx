@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback ,useRef} from 'react';
 import { notificationsApi } from '@/lib/api';
 import { useSocket } from './SocketContext';
 import { useAuth } from './AuthContext';
@@ -40,6 +40,7 @@ const normalizeNotification = (n: any): Notification => ({
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasFetchedOnce = useRef(false);                  // ✅ FIX: prevent wipe on 304
   const { socket, isConnected } = useSocket();
   const { isAuthenticated } = useAuth();
 
@@ -56,6 +57,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (res.success && res.data) {
         const notifs = Array.isArray(res.data) ? res.data : (res.data as any).notifications || [];
         setNotifications(notifs.map(normalizeNotification));
+        hasFetchedOnce.current = true; // ✅ FIX
       }
     } catch (e) {
       console.error('Failed to fetch notifications:', e);
