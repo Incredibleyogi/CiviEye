@@ -7,6 +7,7 @@ import { getImageEmbedding } from "../utils/imageEmbedding.js";
 import { getTextEmbedding } from "../utils/duplicateCheckAI.js";
 import { createAndSendNotification } from "../utils/socketEvents.js";
 import sharp from "sharp";
+import Notification from "../models/Notification.js";
 
 
 const { getIo } = await import("../config/socket.js");
