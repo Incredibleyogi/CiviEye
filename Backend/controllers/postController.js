@@ -70,7 +70,11 @@ export const createPost = async (req, res) => {
     });
    // Send notification to all users EXCEPT the creator
 const allUsers = await User.find({ _id: { $ne: req.user._id } }, "_id");
-
+const existingNotifications = await Notification.find({
+  'data.postId': post._id,
+  type: 'nearby_post'
+});
+if (existingNotifications.length === 0) {
 await createAndSendNotification(
   allUsers.map(u => u._id.toString()),
   {
@@ -80,6 +84,7 @@ await createAndSendNotification(
     data: { postId: post._id },
   }
 );
+}
 
 
     return res.status(201).json({
