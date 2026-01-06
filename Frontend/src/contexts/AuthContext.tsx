@@ -18,7 +18,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (data: { name: string; email: string; password: string; confirmPassword: string }) => Promise<{ success: boolean; error?: string }>;
-    verifyOtp: (otp: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  verifyOtp: (otp: string) => Promise<{ success: boolean; error?: string; message?: string }>;
   resendOtp: () => Promise<{ success: boolean; error?: string; message?: string }>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
@@ -28,11 +28,38 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const USER_STORAGE_KEY = 'civiceye_user';
+
+// Helper to get cached user from localStorage
+const getCachedUser = (): User | null => {
+  try {
+    const cached = localStorage.getItem(USER_STORAGE_KEY);
+    return cached ? JSON.parse(cached) : null;
+  } catch {
+    return null;
+  }
+};
+
+// Helper to save user to localStorage
+const saveUserToStorage = (user: User | null) => {
+  if (user) {
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  } else {
+    localStorage.removeItem(USER_STORAGE_KEY);
+  }
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize with cached user to prevent flicker
+  const [user, setUser] = useState<User | null>(() => getCachedUser());
   const [loading, setLoading] = useState(true);
   const { registerUser, isConnected } = useSocket();
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+
+  // Sync user state to localStorage
+  useEffect(() => {
+    saveUserToStorage(user);
+  }, [user]);
 
   // Register user with socket when authenticated
   useEffect(() => {
@@ -41,34 +68,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isConnected, registerUser]);
 
-  // Check for existing session on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('civiceye_token');
-      if (token) {
-        try {
-          const res = await profileApi.getCurrentUser();
-          if (res.success && res.data) {
-            const userData = res.data as any;
-            setUser({
-              id: userData._id || userData.id,
-              name: userData.name,
-              email: userData.email,
-              avatar: userData.avatar,
-              bio: userData.bio,
-              role: userData.role,
-            });
-          } else {
-            localStorage.removeItem('civiceye_token');
-          }
-        } catch {
-          localStorage.removeItem('civiceye_token');
+  // Check for existing session on mount and refresh user data
+useEffect(() => {
+  const checkAuth = async () => {
+    const token = localStorage.getItem('civiceye_token');
+    if (token) {
+      try {
+        const res = await profileApi.getCurrentUser();
+
+        if (res.success && res.data) {
+          const userData = res.data as any;
+
+          setUser(prev => {
+            if (!prev) {
+              return {
+                id: userData._id || userData.id,
+                name: userData.name,
+                email: userData.email,
+                avatar: userData.avatar,
+                bio: userData.bio,
+                role: userData.role,
+              };
+            }
+
+            return {
+              ...prev,
+              name: userData.name ?? prev.name,
+              email: userData.email ?? prev.email,
+              avatar: userData.avatar ?? prev.avatar,
+              bio: userData.bio ?? prev.bio,
+              role: userData.role ?? prev.role,
+            };
+          });
         }
+        // ❌ no else block
+      } catch {
+        // ❌ do not clear user here
       }
-      setLoading(false);
-    };
-    checkAuth();
-  }, []);
+    }
+    setLoading(false);
+  };
+
+  checkAuth();
+}, []);
+
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -76,14 +119,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.success && res.data) {
         const { token, user: userData } = res.data as { token: string; user: any };
         localStorage.setItem('civiceye_token', token);
-        setUser({
+        const newUser: User = {
           id: userData._id || userData.id,
           name: userData.name,
           email: userData.email,
           avatar: userData.avatar,
           bio: userData.bio,
           role: userData.role,
-        });
+        };
+        setUser(newUser);
         return { success: true };
       }
       return { success: false, error: res.error || 'Login failed' };
@@ -95,64 +139,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = useCallback(async (data: { name: string; email: string; password: string; confirmPassword: string }) => {
     try {
       const res = await authApi.signup(data);
-     if (res.success) {
-  setPendingEmail(data.email); // ✅ STORE EMAIL FOR OTP
-  return { success: true };
-}
+      if (res.success) {
+        setPendingEmail(data.email);
+        return { success: true };
+      }
       return { success: false, error: res.error || 'Signup failed' };
     } catch {
       return { success: false, error: 'Signup failed' };
     }
   }, []);
 
- const verifyOtp = useCallback(async (otp: string) => {
-  if (!pendingEmail) {
-    return {
-      success: false,
-      error: 'Email missing. Please sign up again.',
-    };
-  }
+  const verifyOtp = useCallback(async (otp: string) => {
+    if (!pendingEmail) {
+      return {
+        success: false,
+        error: 'Email missing. Please sign up again.',
+      };
+    }
 
-  try {
-    const res = await authApi.verifyOtp({
-      email: pendingEmail,
-      otp,
-    });
-    return res;
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'OTP verification failed',
-    };
-  }
-}, [pendingEmail]);
+    try {
+      const res = await authApi.verifyOtp({
+        email: pendingEmail,
+        otp,
+      });
+      return res;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'OTP verification failed',
+      };
+    }
+  }, [pendingEmail]);
 
+  const resendOtp = useCallback(async () => {
+    if (!pendingEmail) {
+      return {
+        success: false,
+        error: 'Email missing. Please sign up again.',
+      };
+    }
 
-const resendOtp = useCallback(async () => {
-  if (!pendingEmail) {
-    return {
-      success: false,
-      error: 'Email missing. Please sign up again.',
-    };
-  }
-
-  try {
-    const res = await authApi.resendOtp({
-      email: pendingEmail,
-    });
-    return res;
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to resend OTP',
-    };
-  }
-}, [pendingEmail]);
-
- 
+    try {
+      const res = await authApi.resendOtp({
+        email: pendingEmail,
+      });
+      return res;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to resend OTP',
+      };
+    }
+  }, [pendingEmail]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('civiceye_token');
+    localStorage.removeItem(USER_STORAGE_KEY);
     setUser(null);
   }, []);
 
@@ -168,7 +210,7 @@ const resendOtp = useCallback(async () => {
         setUser(prev => prev ? {
           ...prev,
           name: userData.name || prev.name,
-          bio: userData.bio || prev.bio,
+          bio: userData.bio ?? prev.bio, // Use ?? to preserve empty string
           avatar: userData.avatar || prev.avatar,
         } : null);
         return true;
@@ -199,7 +241,7 @@ const resendOtp = useCallback(async () => {
         isAdmin,
         loading,
         verifyOtp,
-    resendOtp,
+        resendOtp,
         login,
         signup,
         logout,

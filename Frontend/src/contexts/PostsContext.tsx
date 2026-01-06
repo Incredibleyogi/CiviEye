@@ -72,10 +72,29 @@ interface PostsContextType {
 const PostsContext = createContext<PostsContextType | undefined>(undefined);
 
 /* -------------------- NORMALIZER -------------------- */
-// FIX: Handle both 'image' (string) and 'images' (array) from backend
+// FIX: Properly normalize likedBy to string[] for consistent comparison
+const normalizeLikedBy = (likes: any[]): string[] => {
+  if (!Array.isArray(likes)) return [];
+  
+  return likes.map((l: any) => {
+    // Handle ObjectId objects from MongoDB
+    if (typeof l === 'object' && l !== null) {
+      // Check for _id field (populated user object)
+      if (l._id) return String(l._id);
+      // Check for id field
+      if (l.id) return String(l.id);
+      // Try toString() for ObjectId
+      if (typeof l.toString === 'function' && l.toString() !== '[object Object]') {
+        return l.toString();
+      }
+    }
+    // Already a string
+    return String(l);
+  });
+};
+
 const normalizePost = (p: any): Post => ({
   id: p._id || p.id,
-  // FIX: Backend uses 'image' field (singular) or 'images' array
   imageUrl: p.image || (Array.isArray(p.images) ? p.images[0] : '') || p.imageUrl || '',
   caption: p.description || p.caption || '',
   createdAt: p.createdAt,
@@ -93,7 +112,8 @@ const normalizePost = (p: any): Post => ({
     avatar: p.user?.avatar,
   },
   likes: p.likes?.length || p.likesCount || 0,
-  likedBy: (p.likes || []).map((l: any) => l.toString?.() ?? l),
+  // FIX: Use proper normalization function
+  likedBy: normalizeLikedBy(p.likes || []),
   comments: (p.comments || []).map((c: any) => ({
     id: c._id || c.id,
     text: c.message || c.text,
@@ -104,7 +124,6 @@ const normalizePost = (p: any): Post => ({
     },
     createdAt: c.createdAt,
   })),
-  // FIX: Normalize status to lowercase to match frontend expectations
   status: (p.status || 'unresolved').toLowerCase().replace(' ', '_') as IssueStatus,
   category: (p.category || 'other') as IssueCategory,
   adminResponse: p.adminResponse,
@@ -137,7 +156,6 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       const res = await postsApi.getNearby({ lat, lng, radius: 50000 });
       console.log('Posts API response:', res);
 
-      // FIX: Backend returns { posts: [...] }, so access res.data.posts
       if (res.success && res.data) {
         const postsArray = res.data.posts || res.data;
         if (Array.isArray(postsArray)) {
@@ -189,7 +207,6 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       });
 
       if (res.success && res.data) {
-        // FIX: Backend returns { success: true, post: {...} }
         const postData = (res.data as any).post || res.data;
         const normalized = normalizePost(postData);
         setPosts(prev => [normalized, ...prev]);
