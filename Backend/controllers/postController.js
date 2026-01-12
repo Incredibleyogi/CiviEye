@@ -281,3 +281,45 @@ export const getPostComments = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+/* =======================
+   GET POSTS BY USER ID
+======================= */
+export const getPostsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const posts = await Post.find({ user: userId })  // ← Changed from "user.id"
+      .populate('user', 'name avatar')  // ← Add populate to get user details
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const transformedPosts = posts.map((post) => ({
+      id: post._id,
+      imageUrl: post.image,  // ← Your schema uses 'image', not 'imageUrl'
+      caption: post.description,  // ← Your schema uses 'description', not 'caption'
+      category: post.category,
+      status: (post.status || "unresolved").toLowerCase().replace(' ', '_'),
+      likes: post.likes?.length || 0,  // ← likes is an array of ObjectIds
+      likedBy: post.likes || [],
+      comments: post.comments || [],
+      createdAt: post.createdAt,
+      user: {
+        id: post.user?._id,
+        name: post.user?.name,
+        avatar: post.user?.avatar,
+      },
+      location: {
+        coordinates: post.location?.coordinates,
+        address: post.address,
+      },
+    }));
+
+    res.status(200).json({ posts: transformedPosts });
+  } catch (error) {
+    console.error("Get posts by user error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+

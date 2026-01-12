@@ -331,3 +331,35 @@ export const updateAvatar = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+/* =======================
+   GET USER BY ID (Public Profile)
+======================= */
+export const getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId).select(
+      "-password -otp -otpExpiry -otpVerified -createdAt -updatedAt -__v"
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        bio: user.bio,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Get user by ID error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

@@ -127,6 +127,7 @@ useEffect(() => {
           bio: userData.bio,
           role: userData.role,
         };
+      // update state
         setUser(newUser);
         return { success: true };
       }

@@ -11,6 +11,8 @@ import {
   addComment,
   getPostComments
 } from "../controllers/postController.js";
+import { getPostsByUser } from "../controllers/postController.js";  // ADD THIS
+
 
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
@@ -58,5 +60,9 @@ router.patch("/:id/status", protect, updatePostStatus);
 router.post("/:id/like", protect, likePost);
 router.post("/:id/comment", protect, addComment);
 router.get("/:id/comments", getPostComments);
+
+// Get posts by specific user
+router.get("/user/:userId", protect, getPostsByUser);
+
 
 export default router;
