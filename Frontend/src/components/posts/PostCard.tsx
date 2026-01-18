@@ -169,11 +169,17 @@ export function PostCard({ post, showActions = false, showAdminActions = false, 
                 )}
                 {isAdmin && (
                   <>
-                    <DropdownMenuItem onClick={() => onStatusChange?.(post.id, 'in_progress')}>
+                    <DropdownMenuItem onClick={() => {
+                      console.log('[PostCard] Admin marking post as in_progress:', post.id);
+                      onStatusChange?.(post.id, 'in_progress');
+                    }}>
                       <Clock className="w-4 h-4 mr-2 text-warning" />
                       Mark In Progress
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onStatusChange?.(post.id, 'resolved')}>
+                    <DropdownMenuItem onClick={() => {
+                      console.log('[PostCard] Admin marking post as resolved:', post.id);
+                      onStatusChange?.(post.id, 'resolved');
+                    }}>
                       <CheckCircle2 className="w-4 h-4 mr-2 text-success" />
                       Mark Resolved
                     </DropdownMenuItem>

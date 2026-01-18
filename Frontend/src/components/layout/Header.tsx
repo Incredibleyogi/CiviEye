@@ -40,17 +40,28 @@ export function Header({ title, showLogo = true, showNotifications = true }: Hea
         )}
 
         {showNotifications && (
-          <button
-            onClick={() => navigate('/notifications')}
-            className="relative p-2 rounded-full hover:bg-muted transition-colors"
-          >
-            <Bell className="w-5 h-5 text-foreground" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center animate-pulse-ring">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => navigate('/admin/management')}
+                className="p-2 rounded-full hover:bg-muted transition-colors text-secondary"
+                title="Admin Management"
+              >
+                <Shield className="w-5 h-5" />
+              </button>
             )}
-          </button>
+            <button
+              onClick={() => navigate('/notifications')}
+              className="relative p-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <Bell className="w-5 h-5 text-foreground" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center animate-pulse-ring">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
         )}
       </div>
     </header>

@@ -243,16 +243,31 @@ export const updatePostStatus = async (req, res) => {
 
     // FIX: Get userId properly and convert to string
     const userId = (req.userId || req.user?._id || req.user?.id)?.toString();
+    const userRole = req.user?.role;
+    
+    console.log('[postController] updatePostStatus:', {
+      postId: req.params.id,
+      newStatus: req.body.status,
+      userId,
+      userRole,
+      isAdmin: userRole === 'admin',
+      postOwnerId: post.user.toString(),
+      isPostOwner: post.user.toString() === userId
+    });
 
+    // FIX: Allow if admin OR post owner
     if (
       post.user.toString() !== userId &&
-      req.user?.role !== "admin"
+      userRole !== "admin"
     ) {
+      console.log('[postController] Authorization failed - not admin and not post owner');
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    console.log('[postController] Updating post status from', post.status, 'to', req.body.status);
     post.status = req.body.status;
     await post.save();
+    console.log('[postController] Post status saved successfully');
 
     if (post.user.toString() !== userId) {
       await createAndSendNotification(post.user, {
@@ -264,6 +279,7 @@ export const updatePostStatus = async (req, res) => {
 
     res.json({ message: "Status updated", post });
   } catch (err) {
+    console.error('[postController] updatePostStatus error:', err);
     res.status(500).json({ message: err.message });
   }
 };

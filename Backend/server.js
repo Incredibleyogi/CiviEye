@@ -25,7 +25,7 @@ app.use(
   cors({
     origin: "http://localhost:8080",
     credentials: true, // needed for Google OAuth redirects
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );

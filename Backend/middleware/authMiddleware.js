@@ -19,6 +19,8 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ message: "User not found" });
     }
 
+    console.log('[authMiddleware] User authenticated:', { id: user._id, email: user.email, role: user.role, name: user.name });
+
     req.user = {
       _id: user._id,
       role: user.role,
@@ -28,6 +30,7 @@ export const protect = async (req, res, next) => {
 
     next();
   } catch (error) {
+    console.error('[authMiddleware] Auth error:', error.message);
     return res.status(401).json({ message: "Token invalid" });
   }
 };

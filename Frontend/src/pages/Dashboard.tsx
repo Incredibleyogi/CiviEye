@@ -13,6 +13,13 @@ export default function Dashboard() {
   const inProgressPosts = posts.filter(p => p.status === 'in_progress');
   const resolvedPosts = posts.filter(p => p.status === 'resolved');
 
+  console.log('[Dashboard] Posts state updated:', { 
+    total: posts.length, 
+    unresolved: unresolvedPosts.length, 
+    inProgress: inProgressPosts.length, 
+    resolved: resolvedPosts.length 
+  });
+
   return (
     <AppLayout>
       <Tabs defaultValue="all" className="w-full">

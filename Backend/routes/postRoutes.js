@@ -58,6 +58,7 @@ router.patch("/:id/status", protect, updatePostStatus);
 =====================
 */
 router.post("/:id/like", protect, likePost);
+router.post("/:id/unlike", protect, likePost);  // FIX: Unlike uses same controller (toggles the like)
 router.post("/:id/comment", protect, addComment);
 router.get("/:id/comments", getPostComments);
 

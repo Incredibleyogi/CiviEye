@@ -12,7 +12,7 @@ const getNavItems = (isAdmin: boolean) => {
   ];
   
   if (isAdmin) {
-    items.splice(3, 0, { path: '/admin', icon: Shield, label: 'Admin' });
+    items.splice(3, 0, { path: '/admin/management', icon: Shield, label: 'Admin' });
   }
   
   return items;
@@ -28,8 +28,8 @@ export function BottomNav() {
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
         {navItems.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path || 
-            (path === '/admin' && location.pathname.startsWith('/admin'));
-          const isAdminItem = path === '/admin';
+            (path === '/admin/management' && location.pathname.startsWith('/admin'));
+          const isAdminItem = path === '/admin/management';
           
           return (
             <Link

@@ -75,9 +75,12 @@ useEffect(() => {
     if (token) {
       try {
         const res = await profileApi.getCurrentUser();
+        console.log('[AuthContext] getCurrentUser response:', res);
 
         if (res.success && res.data) {
-          const userData = res.data as any;
+          // FIX: Handle both { user: {...} } and { ...userData } formats
+          const userData = (res.data as any).user || res.data;
+          console.log('[AuthContext] Extracted user data:', userData);
 
           setUser(prev => {
             if (!prev) {
@@ -233,6 +236,8 @@ useEffect(() => {
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
+  
+  console.log('[AuthContext] Auth state:', { isAuthenticated, isAdmin, userRole: user?.role, user: user?.email });
 
   return (
     <AuthContext.Provider

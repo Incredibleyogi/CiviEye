@@ -287,8 +287,11 @@ export const getCurrentUser = async (req, res) => {
     const user = await User.findById(userId).select("-password -otp -otpExpiry -otpLastSentAt");
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    console.log('[authController] getCurrentUser - User data:', { id: user._id, email: user.email, role: user.role, name: user.name });
+
     res.json({ user });
   } catch (err) {
+    console.error('[authController] getCurrentUser error:', err.message);
     res.status(500).json({ message: err.message });
   }
 };
@@ -360,6 +363,57 @@ export const getUserById = async (req, res) => {
   } catch (error) {
     console.error("Get user by ID error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =======================
+   UPDATE USER ROLE (ADMIN ONLY)
+======================= */
+export const updateUserRole = async (req, res) => {
+  try {
+    // Check if requester is admin
+    const requesterRole = req.user?.role;
+    console.log('[authController] updateUserRole - Requester role:', requesterRole, 'User ID:', req.user?._id);
+    
+    if (requesterRole !== 'admin') {
+      console.log('[authController] updateUserRole - Access denied, not admin');
+      return res.status(403).json({ message: 'Only admins can update user roles' });
+    }
+
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    // Validate role
+    const validRoles = ['user', 'admin'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role. Must be "user" or "admin"' });
+    }
+
+    // Find and update user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log('[authController] updateUserRole - Updating user', userId, 'to role:', role);
+    
+    user.role = role;
+    await user.save();
+
+    console.log('[authController] updateUserRole - Successfully updated user', userId, 'to:', role);
+
+    res.json({
+      message: `User role updated to ${role}`,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('[authController] updateUserRole error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 

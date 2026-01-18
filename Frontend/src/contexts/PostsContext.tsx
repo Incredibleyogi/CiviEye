@@ -312,9 +312,15 @@ export function PostsProvider({ children }: { children: ReactNode }) {
   };
 
   const updatePostStatus = async (postId: string, status: IssueStatus, adminResponse?: string) => {
+    console.log('[PostsContext] Updating post status:', { postId, status });
     const res = await postsApi.updateStatus(postId, status);
-    if (!res.success) return false;
+    console.log('[PostsContext] API Response:', res);
+    if (!res.success) {
+      console.error('[PostsContext] Failed to update status:', res.error);
+      return false;
+    }
 
+    console.log('[PostsContext] Status updated successfully, updating local state');
     setPosts(prev =>
       prev.map(p =>
         p.id === postId

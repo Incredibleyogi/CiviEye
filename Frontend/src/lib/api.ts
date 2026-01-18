@@ -157,6 +157,9 @@ export const profileApi = {
   },
 
   getCurrentUser: () => apiRequest('/auth/me'),
+
+  updateUserRole: (userId: string, role: string) =>
+    apiRequest(`/auth/users/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
 };
 
 // Posts API
@@ -230,8 +233,10 @@ export const postsApi = {
 
   delete: (id: string) => apiRequest(`/posts/${id}`, { method: 'DELETE' }),
 
-  updateStatus: (id: string, status: string) =>
-    apiRequest(`/posts/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  updateStatus: (id: string, status: string) => {
+    console.log('[postsApi] Calling updateStatus:', { id, status });
+    return apiRequest(`/posts/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  },
 
   like: (id: string) => apiRequest(`/posts/${id}/like`, { method: 'POST' }),
   unlike: (id: string) => apiRequest(`/posts/${id}/unlike`, { method: 'POST' }),
