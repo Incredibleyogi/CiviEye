@@ -234,6 +234,7 @@ export const postsApi = {
     apiRequest(`/posts/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 
   like: (id: string) => apiRequest(`/posts/${id}/like`, { method: 'POST' }),
+  unlike: (id: string) => apiRequest(`/posts/${id}/unlike`, { method: 'POST' }),
 
   // FIX: Backend route is /:id/comment (singular), not /comments
   addComment: (id: string, text: string) =>

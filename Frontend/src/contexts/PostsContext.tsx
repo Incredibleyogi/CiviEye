@@ -63,7 +63,7 @@ interface PostsContextType {
   addComment: (postId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => Promise<boolean>;
   updateUserInPosts: (userId: string, updates: { name?: string; avatar?: string }) => void;
   likePost: (postId: string, userId: string) => Promise<boolean>;
-  unlikePost: (postId: string, userId: string) => void;
+  unlikePost: (postId: string, userId: string) => Promise<boolean>;
   updatePostStatus: (postId: string, status: IssueStatus, adminResponse?: string) => Promise<boolean>;
   refreshPosts: () => Promise<void>;
   addNewPost: (post: Post) => void;
@@ -279,7 +279,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
       }))
     );
 
-  const likePost = async (postId: string, userId: string) => {
+  const likePost = async (postId: string, userId: string): Promise<boolean> => {
     const res = await postsApi.like(postId);
     if (!res.success) return false;
 
@@ -293,7 +293,14 @@ export function PostsProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const unlikePost = (postId: string, userId: string) =>
+  const unlikePost = async (postId: string, userId: string) => {
+    const res = await postsApi.unlike(postId);
+    if (!res.success) {
+      console.error('[PostsContext] Unlike failed:', res.error);
+      return false;
+    }
+
+    console.log('[PostsContext] Unlike successful, updating state for post:', postId);
     setPosts(prev =>
       prev.map(p =>
         p.id === postId
@@ -301,6 +308,8 @@ export function PostsProvider({ children }: { children: ReactNode }) {
           : p
       )
     );
+    return true;
+  };
 
   const updatePostStatus = async (postId: string, status: IssueStatus, adminResponse?: string) => {
     const res = await postsApi.updateStatus(postId, status);

@@ -48,17 +48,30 @@ export function PostCard({ post, showActions = false, showAdminActions = false, 
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
 
-  const handleLike = () => {
+  const handleLike = async () => {
     if (!user) return;
     
+    console.log('[PostCard] Like button clicked:', { postId: post.id, userId: user.id, currentlyLiked: isLiked });
+    
     if (isLiked) {
-      unlikePost(post.id, user.id);
-      setLikes(prev => prev - 1);
+      const success = await unlikePost(post.id, user.id);
+      if (success) {
+        console.log('[PostCard] Unlike successful, updating UI');
+        setLikes(prev => prev - 1);
+        setIsLiked(false);
+      } else {
+        console.error('[PostCard] Unlike failed, keeping UI in sync');
+      }
     } else {
-      likePost(post.id, user.id);
-      setLikes(prev => prev + 1);
+      const success = await likePost(post.id, user.id);
+      if (success) {
+        console.log('[PostCard] Like successful, updating UI');
+        setLikes(prev => prev + 1);
+        setIsLiked(true);
+      } else {
+        console.error('[PostCard] Like failed, keeping UI in sync');
+      }
     }
-    setIsLiked(!isLiked);
   };
 
   const handleAddComment = () => {
