@@ -23,7 +23,10 @@ app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: "http://localhost:8080",
+   origin: [
+    "http://localhost:8080",
+    "https://civiceye.vercel.app"   // future frontend URL
+  ],
     credentials: true, // needed for Google OAuth redirects
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
