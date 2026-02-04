@@ -158,6 +158,16 @@ export const login = async (req, res) => {
 
     const token = signToken({ id: user._id });
 
+    // Set httpOnly cookie for auth token
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    };
+    res.cookie('token', token, cookieOptions);
+
     // Safe user response - include avatar and bio
     const safeUser = {
       id: user._id,
@@ -169,11 +179,28 @@ export const login = async (req, res) => {
 
     res.json({
       message: "Login successful",
-      token,
       user: safeUser,
     });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* =======================
+   LOGOUT
+======================= */
+export const logout = (req, res) => {
+  try {
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      path: '/',
+    };
+    res.clearCookie('token', cookieOptions);
+    res.json({ message: 'Logged out' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
   }
 };
 

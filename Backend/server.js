@@ -5,6 +5,7 @@ dotenv.config();
 import http from "http";
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
 import { initSocket } from "./config/socket.js";
 
@@ -23,15 +24,19 @@ app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-   origin: [
-    "http://localhost:8080",
-    "https://civiceye.vercel.app"   // future frontend URL
-  ],
-    credentials: true, // needed for Google OAuth redirects
+    origin: [
+      process.env.FRONTEND_URL || "http://localhost:5173",
+      "http://localhost:8080",
+      "https://civiceye.vercel.app"
+    ],
+    credentials: true, // required for cookies and Google OAuth redirects
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Parse cookies from incoming requests
+app.use(cookieParser());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);

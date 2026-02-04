@@ -9,7 +9,8 @@ import {
   getUserById ,
   getCurrentUser,
   updateAvatar,
-  updateUserRole
+  updateUserRole,
+  logout
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
@@ -22,6 +23,7 @@ router.post("/signup", signup);
 router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
 router.post("/login", login);
+router.post("/logout", logout);
 router.post("/profile/avatar", protect, upload.single("avatar"), updateAvatar);
 router.get("/user/:userId", protect, getUserById);
 router.put("/update-profile", protect, updateProfile);

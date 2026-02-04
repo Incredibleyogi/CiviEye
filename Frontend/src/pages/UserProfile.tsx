@@ -42,7 +42,6 @@ export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { user: currentUser} = useAuth();
-  const token = localStorage.getItem('civiceye_token');
   
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -61,13 +60,11 @@ export default function UserProfile() {
     const fetchUserData = async () => {
       if (!userId) return;
 
-       if (!token) {
-      console.log('No token available yet');
-      return;
-    }
-      
+      // Reset state for new user
+      setProfile(null);
+      setPosts([]);
+      setError(null);
       setLoading(true);
-      // setError(null);
 
       try {
         // Fetch user profile
@@ -75,14 +72,17 @@ export default function UserProfile() {
         const profileRes = await fetch(
           `${import.meta.env.VITE_API_URL}/auth/user/${userId}`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            credentials: 'include',
           }
         );
          console.log('Profile response status:', profileRes.status); // Debug log
 
         if (!profileRes.ok) {
+          if (profileRes.status === 401) {
+            // Not authenticated or session expired
+            navigate('/login');
+            return;
+          }
           if (profileRes.status === 404) {
             throw new Error('User not found');
           }
@@ -98,9 +98,7 @@ export default function UserProfile() {
           `${import.meta.env.VITE_API_URL}/posts/user/${userId}`,
           {
             cache: "no-store",  // Add this
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            credentials: 'include',
           }
         );
 
@@ -118,7 +116,7 @@ export default function UserProfile() {
     };
 
     fetchUserData();
-  }, [userId, token]);
+  }, [userId]);
 
   if (loading) {
     return (

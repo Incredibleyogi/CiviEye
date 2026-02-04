@@ -18,6 +18,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (data: { name: string; email: string; password: string; confirmPassword: string }) => Promise<{ success: boolean; error?: string }>;
+  googleLogin: (token: string) => Promise<{ success: boolean; error?: string }>;
   verifyOtp: (otp: string) => Promise<{ success: boolean; error?: string; message?: string }>;
   resendOtp: () => Promise<{ success: boolean; error?: string; message?: string }>;
   logout: () => void;
@@ -71,44 +72,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check for existing session on mount and refresh user data
 useEffect(() => {
   const checkAuth = async () => {
-    const token = localStorage.getItem('civiceye_token');
-    if (token) {
-      try {
-        const res = await profileApi.getCurrentUser();
-        console.log('[AuthContext] getCurrentUser response:', res);
+    try {
+      const res = await profileApi.getCurrentUser();
+      console.log('[AuthContext] getCurrentUser response:', res);
 
-        if (res.success && res.data) {
-          // FIX: Handle both { user: {...} } and { ...userData } formats
-          const userData = (res.data as any).user || res.data;
-          console.log('[AuthContext] Extracted user data:', userData);
+      if (res.success && res.data) {
+        // FIX: Handle both { user: {...} } and { ...userData } formats
+        const userData = (res.data as any).user || res.data;
+        console.log('[AuthContext] Extracted user data:', userData);
 
-          setUser(prev => {
-            if (!prev) {
-              return {
-                id: userData._id || userData.id,
-                name: userData.name,
-                email: userData.email,
-                avatar: userData.avatar,
-                bio: userData.bio,
-                role: userData.role,
-              };
-            }
-
+        setUser(prev => {
+          if (!prev) {
             return {
-              ...prev,
-              name: userData.name ?? prev.name,
-              email: userData.email ?? prev.email,
-              avatar: userData.avatar ?? prev.avatar,
-              bio: userData.bio ?? prev.bio,
-              role: userData.role ?? prev.role,
+              id: userData._id || userData.id,
+              name: userData.name,
+              email: userData.email,
+              avatar: userData.avatar,
+              bio: userData.bio,
+              role: userData.role,
             };
-          });
-        }
-        // ❌ no else block
-      } catch {
-        // ❌ do not clear user here
+          }
+
+          return {
+            ...prev,
+            name: userData.name ?? prev.name,
+            email: userData.email ?? prev.email,
+            avatar: userData.avatar ?? prev.avatar,
+            bio: userData.bio ?? prev.bio,
+            role: userData.role ?? prev.role,
+          };
+        });
       }
+    } catch (err) {
+      // not authenticated or server error - keep user null
+      console.log('[AuthContext] checkAuth failed:', err);
     }
+
     setLoading(false);
   };
 
@@ -120,8 +119,7 @@ useEffect(() => {
     try {
       const res = await authApi.login({ email, password });
       if (res.success && res.data) {
-        const { token, user: userData } = res.data as { token: string; user: any };
-        localStorage.setItem('civiceye_token', token);
+        const userData = (res.data as any).user || res.data;
         const newUser: User = {
           id: userData._id || userData.id,
           name: userData.name,
@@ -130,7 +128,7 @@ useEffect(() => {
           bio: userData.bio,
           role: userData.role,
         };
-      // update state
+      // update state (server sets cookie)
         setUser(newUser);
         return { success: true };
       }
@@ -150,6 +148,28 @@ useEffect(() => {
       return { success: false, error: res.error || 'Signup failed' };
     } catch {
       return { success: false, error: 'Signup failed' };
+    }
+  }, []);
+
+  const googleLogin = useCallback(async (token: string) => {
+    try {
+      const res = await authApi.googleLogin({ token });
+      if (res.success && res.data) {
+        const userData = (res.data as any).user || res.data;
+        const newUser: User = {
+          id: userData._id || userData.id,
+          name: userData.name,
+          email: userData.email,
+          avatar: userData.avatar || userData.profilePic,
+          bio: userData.bio,
+          role: userData.role,
+        };
+        setUser(newUser);
+        return { success: true };
+      }
+      return { success: false, error: res.error || 'Google login failed' };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Google login failed' };
     }
   }, []);
 
@@ -196,8 +216,13 @@ useEffect(() => {
     }
   }, [pendingEmail]);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('civiceye_token');
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch (err) {
+      // ignore
+    }
+
     localStorage.removeItem(USER_STORAGE_KEY);
     setUser(null);
   }, []);
@@ -250,6 +275,7 @@ useEffect(() => {
         resendOtp,
         login,
         signup,
+        googleLogin,
         logout,
         updateUser,
         updateProfile,

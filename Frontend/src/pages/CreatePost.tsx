@@ -113,7 +113,6 @@ export default function CreatePost() {
   try {
     if (isEditMode) {
       // Edit mode: Update the existing post
-      const token = localStorage.getItem('civiceye_token');
       const updateData = {
         title: caption.trim(),
         caption: caption.trim(),
@@ -125,14 +124,13 @@ export default function CreatePost() {
       const url = `${import.meta.env.VITE_API_URL}/posts/${editingPost.id}`;
       if (!import.meta.env.VITE_API_URL) console.warn('[CreatePost] VITE_API_URL is not set');
       console.log('[CreatePost] PUT', url, updateData);
-      if (!token) throw new Error('Authentication token missing');
 
       const res = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(updateData),
       });
 
@@ -179,13 +177,9 @@ export default function CreatePost() {
       formData.append("address", location_data.address || '');
 
       // Call backend API
-      const token = localStorage.getItem('civiceye_token');  // Get auth token
-
       const res = await fetch(`${import.meta.env.VITE_API_URL}/posts`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include',
         body: formData,
       });
 

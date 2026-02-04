@@ -52,10 +52,17 @@ export const googleLogin = async (req, res) => {
     ======================= */
     const jwtToken = signToken({ id: user._id });
 
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    };
+    res.cookie('token', jwtToken, cookieOptions);
 
     res.status(200).json({
       message: "Google login successful",
-      token: jwtToken,
       user: {
         id: user._id,
         name: user.name,

@@ -46,7 +46,8 @@ const CivicEyeLogo = () => (
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, googleLogin } = useAuth();
+  const { login } = useAuth();
+  const auth = useAuth() as any; // googleLogin is provided at runtime
   const { toast } = useToast();
 
   const [email, setEmail] = useState('');
@@ -100,7 +101,7 @@ export default function Login() {
         googleObj.accounts.id.initialize({
           client_id: googleClientId,
           callback: async (response: { credential: string }) => {
-            const result = await googleLogin(response.credential);
+            const result = await auth.googleLogin(response.credential);
             setIsGoogleLoading(false);
             
             if (result.success) {

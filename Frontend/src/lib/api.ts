@@ -11,28 +11,21 @@ interface ApiResponse<T = unknown> {
   error?: string;
 }
 
-// Helper to get auth token
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('civiceye_token');
-};
-
 // Generic fetch wrapper
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const token = getAuthToken();
-
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
-    ...(token && { Authorization: `Bearer ${token}` }),
   };
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
+      credentials: 'include', // send cookies for auth
     });
 
     
@@ -85,9 +78,10 @@ async function apiFormRequest<T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
         // Note: Don't set Content-Type for FormData, browser sets it with boundary
+        ...(options.headers || {}),
       },
+      credentials: 'include', // send cookies
       body: formData,
     });
 
@@ -131,6 +125,7 @@ export const authApi = {
 
   googleLogin: (data: { token: string }) =>
     apiRequest<{ token: string; user: { id: string; name: string; email: string; profilePic?: string } }>('/auth/google', { method: 'POST', body: JSON.stringify(data) }),
+  logout: () => apiRequest('/auth/logout', { method: 'POST' }),
 };
 
 // Password API
