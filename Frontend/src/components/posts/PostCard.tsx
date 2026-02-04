@@ -198,12 +198,12 @@ export function PostCard({ post, showActions = false, showAdminActions = false, 
         </span>
       </div>
 
-      {/* Image */}
-      <div className="relative aspect-square bg-muted">
+      {/* Image - Optimized for mobile */}
+      <div className="relative bg-muted overflow-hidden">
         <img
           src={post.imageUrl}
           alt={post.caption}
-          className="w-full h-full object-cover"
+          className="w-full h-auto max-h-96 object-cover"
           loading="lazy"
         />
       </div>

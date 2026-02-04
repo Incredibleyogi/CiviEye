@@ -203,7 +203,7 @@ export default function UserProfile() {
           <TabsContent value="posts" className="mt-0">
             <PostGrid
               posts={posts}
-              showActions={false}
+              variant="grid"
               emptyMessage={`${profile.name} hasn't posted any issues yet`}
             />
           </TabsContent>

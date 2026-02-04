@@ -110,8 +110,8 @@ export default function Profile() {
           <TabsContent value="posts" className="mt-0">
             <PostGrid
               posts={userPosts}
-              showActions
-              onDelete={deletePost}
+              variant="grid"
+              onStatusChange={(postId, status) => console.log(`[Profile] Status change: ${postId} -> ${status}`)}
               emptyMessage="You haven't reported any issues yet"
             />
           </TabsContent>

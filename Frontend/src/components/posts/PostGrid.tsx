@@ -1,5 +1,6 @@
 import { Post, IssueStatus } from '@/types';
 import { PostCard } from './PostCard';
+import { PostGridCard } from './PostGridCard';
 
 interface PostGridProps {
   posts: Post[];
@@ -9,6 +10,7 @@ interface PostGridProps {
   onDelete?: (id: string) => void;
   onStatusChange?: (postId: string, status: IssueStatus) => void;
   emptyMessage?: string;
+  variant?: 'list' | 'grid';
 }
 
 export function PostGrid({ 
@@ -18,7 +20,8 @@ export function PostGrid({
   onEdit, 
   onDelete, 
   onStatusChange,
-  emptyMessage = 'No posts found' 
+  emptyMessage = 'No posts found',
+  variant = 'list'
 }: PostGridProps) {
   if (posts.length === 0) {
     return (
@@ -30,6 +33,20 @@ export function PostGrid({
         <p className="text-sm text-muted-foreground">
           Check back later for updates
         </p>
+      </div>
+    );
+  }
+
+  if (variant === 'grid') {
+    return (
+      <div className="grid grid-cols-3 gap-1 sm:gap-2 md:gap-3 p-4">
+        {posts.map(post => (
+          <PostGridCard 
+            key={post.id} 
+            post={post} 
+            onStatusChange={onStatusChange}
+          />
+        ))}
       </div>
     );
   }
