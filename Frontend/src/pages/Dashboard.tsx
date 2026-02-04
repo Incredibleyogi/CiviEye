@@ -4,14 +4,22 @@ import { usePosts } from '@/contexts/PostsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Post } from '@/types';
 
 export default function Dashboard() {
   const { posts, deletePost, updatePostStatus } = usePosts();
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   const unresolvedPosts = posts.filter(p => p.status === 'unresolved');
   const inProgressPosts = posts.filter(p => p.status === 'in_progress');
   const resolvedPosts = posts.filter(p => p.status === 'resolved');
+
+  const handleEdit = (post: Post) => {
+    // Navigate to edit page with post data
+    navigate('/create', { state: { editingPost: post } });
+  };
 
   console.log('[Dashboard] Posts state updated:', { 
     total: posts.length, 
@@ -47,6 +55,7 @@ export default function Dashboard() {
           <PostGrid 
             posts={posts} 
             showAdminActions={isAdmin}
+            onEdit={handleEdit}
             onDelete={deletePost}
             onStatusChange={updatePostStatus}
           />
@@ -55,6 +64,7 @@ export default function Dashboard() {
           <PostGrid 
             posts={unresolvedPosts} 
             showAdminActions={isAdmin}
+            onEdit={handleEdit}
             onDelete={deletePost}
             onStatusChange={updatePostStatus}
             emptyMessage="No unresolved issues"
@@ -64,6 +74,7 @@ export default function Dashboard() {
           <PostGrid 
             posts={inProgressPosts} 
             showAdminActions={isAdmin}
+            onEdit={handleEdit}
             onDelete={deletePost}
             onStatusChange={updatePostStatus}
             emptyMessage="No issues in progress"
@@ -73,6 +84,7 @@ export default function Dashboard() {
           <PostGrid 
             posts={resolvedPosts} 
             showAdminActions={isAdmin}
+            onEdit={handleEdit}
             onDelete={deletePost}
             onStatusChange={updatePostStatus}
             emptyMessage="No resolved issues yet"

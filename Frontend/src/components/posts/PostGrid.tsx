@@ -43,7 +43,9 @@ export function PostGrid({
         {posts.map(post => (
           <PostGridCard 
             key={post.id} 
-            post={post} 
+            post={post}
+            onEdit={onEdit}
+            onDelete={onDelete}
             onStatusChange={onStatusChange}
           />
         ))}

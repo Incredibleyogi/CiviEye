@@ -9,7 +9,8 @@ import {
   updatePostStatus,
   likePost,
   addComment,
-  getPostComments
+  getPostComments,
+  updatePost
 } from "../controllers/postController.js";
 import { getPostsByUser } from "../controllers/postController.js";  // ADD THIS
 
@@ -50,6 +51,7 @@ router.get("/:id", getPost);
 =====================
 */
 router.delete("/:id", protect, deletePost);
+router.put("/:id", protect, updatePost);
 router.patch("/:id/status", protect, updatePostStatus);
 
 /*

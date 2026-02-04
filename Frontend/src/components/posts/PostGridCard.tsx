@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Post } from '@/types';
+import { Post, IssueStatus } from '@/types';
 import { Heart, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog';
 import { PostCard } from './PostCard';
 
 interface PostGridCardProps {
   post: Post;
-  onStatusChange?: (postId: string, status: 'unresolved' | 'in_progress' | 'resolved') => void;
+  onEdit?: (post: Post) => void;
+  onDelete?: (id: string) => void;
+  onStatusChange?: (postId: string, status: IssueStatus) => void;
 }
 
-export function PostGridCard({ post, onStatusChange }: PostGridCardProps) {
+export function PostGridCard({ post, onEdit, onDelete, onStatusChange }: PostGridCardProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -50,6 +52,8 @@ export function PostGridCard({ post, onStatusChange }: PostGridCardProps) {
             <PostCard 
               post={post}
               showAdminActions
+              onEdit={onEdit}
+              onDelete={onDelete}
               onStatusChange={onStatusChange}
             />
           </div>

@@ -163,6 +163,43 @@ export const deletePost = async (req, res) => {
   }
 };
 
+// Update post (edit) - accepts JSON payload
+export const updatePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const userId = (req.userId || req.user?._id || req.user?.id)?.toString();
+    if (!userId) return res.status(401).json({ message: 'User not authenticated' });
+
+    // Only post owner (or admin) can edit
+    const isAdmin = req.user?.role === 'admin';
+    if (post.user.toString() !== userId && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to edit this post' });
+    }
+
+    const { title, caption, description, category, address } = req.body;
+
+    // Basic validation
+    if (!title && !caption && !description && !category && !address) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    if (title) post.title = title;
+    if (caption) post.description = caption; // keep using description internally
+    if (description) post.description = description;
+    if (category) post.category = category;
+    if (address !== undefined) post.address = address;
+
+    await post.save();
+
+    res.json({ success: true, post });
+  } catch (err) {
+    console.error('[postController] updatePost error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 export const likePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);

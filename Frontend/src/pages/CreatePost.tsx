@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Camera, MapPin, X, Image as ImageIcon, Loader2, AlertTriangle } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { usePosts } from '@/contexts/PostsContext';
 import { useToast } from '@/hooks/use-toast';
-import { IssueCategory, DuplicateIssue } from '@/types';
+import { IssueCategory, DuplicateIssue, Post } from '@/types';
 
 const CATEGORIES: { value: IssueCategory; label: string; icon: string }[] = [
   { value: 'road', label: 'Road & Traffic', icon: '🛣️' },
@@ -38,15 +38,24 @@ const CATEGORIES: { value: IssueCategory; label: string; icon: string }[] = [
 
 export default function CreatePost() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { addPost, posts } = usePosts();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [caption, setCaption] = useState('');
-  const [category, setCategory] = useState<IssueCategory>('other');
-  const [location, setLocation] = useState({ address: '', city: '', village: '' });
+  // Get editing post from navigation state
+  const editingPost = (location.state as { editingPost?: Post })?.editingPost;
+  const isEditMode = !!editingPost;
+
+  const [imagePreview, setImagePreview] = useState<string | null>(editingPost?.imageUrl || null);
+  const [caption, setCaption] = useState(editingPost?.caption || '');
+  const [category, setCategory] = useState<IssueCategory>(editingPost?.category || 'other');
+  const [location_data, setLocation] = useState({
+    address: editingPost?.location?.address || '',
+    city: editingPost?.location?.city || '',
+    village: editingPost?.location?.village || ''
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateIssue | null>(null);
@@ -102,45 +111,91 @@ export default function CreatePost() {
   setIsSubmitting(true);
 
   try {
-    if (!fileInputRef.current?.files?.[0]) throw new Error('File not selected');
+    if (isEditMode) {
+      // Edit mode: Update the existing post
+      const token = localStorage.getItem('civiceye_token');
+      const updateData = {
+        title: caption.trim(),
+        caption: caption.trim(),
+        description: caption.trim(),
+        category: category,
+        address: location_data.address || '',
+      };
 
-    const file = fileInputRef.current.files[0];
-    const formData = new FormData();
+      const url = `${import.meta.env.VITE_API_URL}/posts/${editingPost.id}`;
+      if (!import.meta.env.VITE_API_URL) console.warn('[CreatePost] VITE_API_URL is not set');
+      console.log('[CreatePost] PUT', url, updateData);
+      if (!token) throw new Error('Authentication token missing');
 
-    // Append image
-    formData.append("media", file);
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
 
-    // Append text fields
-    formData.append("title", caption.trim());
-    formData.append("description", caption.trim());
-    formData.append("category", category);
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        const snippet = text.trim().slice(0, 400);
+        console.error('[CreatePost] Non-JSON response from server:', snippet);
+        // If server returned HTML (starts with '<'), include helpful hint
+        if (snippet.startsWith('<')) {
+          throw new Error(`Unexpected HTML response from server. Likely a wrong URL or server error: ${snippet.slice(0,200)}...`);
+        }
+        throw new Error(`Unexpected non-JSON response from server: ${snippet}`);
+      }
 
-    // Append location in GeoJSON format
-    formData.append("location", JSON.stringify({
-      type: "Point",
-      coordinates: [parseFloat(location.lng || '0'), parseFloat(location.lat || '0')]
-    }));
+      if (!res.ok) throw new Error(data?.message || `Failed to update post: ${res.status} ${res.statusText}`);
 
-    // Append address if any
-    formData.append("address", location.address || '');
+      toast({ title: 'Issue updated successfully!' });
+      navigate('/profile');
+    } else {
+      // Create mode: Submit new post
+      if (!fileInputRef.current?.files?.[0]) throw new Error('File not selected');
 
-    // Call backend API
-    const token = localStorage.getItem('civiceye_token');  // Get auth token
+      const file = fileInputRef.current.files[0];
+      const formData = new FormData();
 
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/posts`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
+      // Append image
+      formData.append("media", file);
 
-    const data = await res.json();
+      // Append text fields
+      formData.append("title", caption.trim());
+      formData.append("description", caption.trim());
+      formData.append("category", category);
 
-    if (!res.ok) throw new Error(data.message || 'Failed to create post');
+      // Append location in GeoJSON format
+      formData.append("location", JSON.stringify({
+        type: "Point",
+        coordinates: [parseFloat(location_data.lng || '0'), parseFloat(location_data.lat || '0')]
+      }));
 
-    toast({ title: 'Issue reported successfully!' });
-    navigate('/dashboard');
+      // Append address if any
+      formData.append("address", location_data.address || '');
+
+      // Call backend API
+      const token = localStorage.getItem('civiceye_token');  // Get auth token
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/posts`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || 'Failed to create post');
+
+      toast({ title: 'Issue reported successfully!' });
+      navigate('/dashboard');
+    }
   } catch (err: any) {
     toast({
       variant: 'destructive',
@@ -154,7 +209,7 @@ export default function CreatePost() {
 
 
   return (
-    <AppLayout showLogo={false} title="Report Issue">
+    <AppLayout showLogo={false} title={isEditMode ? "Edit Issue" : "Report Issue"}>
       <form onSubmit={handleSubmit} className="p-4 space-y-6 animate-fade-in">
         {/* Image Upload */}
         <div className="space-y-2">
@@ -254,18 +309,18 @@ export default function CreatePost() {
           <div className="grid gap-3">
             <Input
               placeholder="Street Address"
-              value={location.address}
+              value={location_data.address}
               onChange={e => setLocation(l => ({ ...l, address: e.target.value }))}
             />
             <div className="grid grid-cols-2 gap-3">
               <Input
                 placeholder="City"
-                value={location.city}
+                value={location_data.city}
                 onChange={e => setLocation(l => ({ ...l, city: e.target.value }))}
               />
               <Input
                 placeholder="Village/Area"
-                value={location.village}
+                value={location_data.village}
                 onChange={e => setLocation(l => ({ ...l, village: e.target.value }))}
               />
             </div>
@@ -283,12 +338,12 @@ export default function CreatePost() {
           {isSubmitting ? (
             <span className="flex items-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
-              Reporting...
+              {isEditMode ? 'Updating...' : 'Reporting...'}
             </span>
           ) : (
             <span className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5" />
-              Submit Report
+              {isEditMode ? 'Update Issue' : 'Submit Report'}
             </span>
           )}
         </Button>

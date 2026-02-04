@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { SettingsSheet } from '@/components/profile/SettingsSheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Post } from '@/types';
 
 function ProfileSkeleton() {
   return (
@@ -41,6 +42,11 @@ export default function Profile() {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleEdit = (post: Post) => {
+    // Navigate to edit page with post data
+    navigate('/create', { state: { editingPost: post } });
   };
 
   // Show skeleton while loading user data
@@ -111,6 +117,8 @@ export default function Profile() {
             <PostGrid
               posts={userPosts}
               variant="grid"
+              onEdit={handleEdit}
+              onDelete={deletePost}
               onStatusChange={(postId, status) => console.log(`[Profile] Status change: ${postId} -> ${status}`)}
               emptyMessage="You haven't reported any issues yet"
             />
