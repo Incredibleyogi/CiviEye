@@ -7,6 +7,6 @@ It helps authorities manage and resolve issues efficiently with role-based acces
 
 🔗 Frontend: [https://civi-eye.vercel.app](https://civi-eye.vercel.app/)
 
-🔗 Backend API: ([Add your backend deployed link here](https://civieye.onrender.com
+🔗 Backend API: ([https://civieye.onrender.com](https://civieye.onrender.com
 ))
 
