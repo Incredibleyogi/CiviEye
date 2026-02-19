@@ -27,6 +27,7 @@ app.use(
     origin: [
       process.env.FRONTEND_URL || "http://localhost:5173",
       "http://localhost:8080",
+      "https://poetic-cheesecake-c2e17a.netlify.app/",
       "https://civi-eye.vercel.app"
     ],
     credentials: true, // required for cookies and Google OAuth redirects
