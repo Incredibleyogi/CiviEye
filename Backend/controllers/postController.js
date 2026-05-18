@@ -97,7 +97,7 @@ await createAndSendNotification(
     return res.status(500).json({ message: "Server error" });
   }
 };
-
+ 
 
 /* ===========================
    REMAINING CONTROLLERS
@@ -108,7 +108,8 @@ export const getNearbyPosts = async (req, res) => {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
       .limit(200)
-      .populate("user", "name email avatar");
+      .populate("user", "name email avatar")
+      .populate("comments.user", "name avatar");
 
     res.json({ posts });
   } catch (err) {
@@ -118,7 +119,9 @@ export const getNearbyPosts = async (req, res) => {
 
 export const getPost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate("user", "name email avatar");
+    const post = await Post.findById(req.params.id)
+      .populate("user", "name email avatar")
+      .populate("comments.user", "name avatar");
     if (!post) return res.status(404).json({ message: "Not found" });
     res.json({ post });
   } catch (err) {
@@ -137,7 +140,8 @@ export const getMyPosts = async (req, res) => {
     
     const posts = await Post.find({ user: userId })
       .sort({ createdAt: -1 })
-      .populate("user", "name email avatar");
+      .populate("user", "name email avatar")
+      .populate("comments.user", "name avatar");
     res.json({ posts });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -344,6 +348,7 @@ export const getPostsByUser = async (req, res) => {
 
     const posts = await Post.find({ user: userId })  // ← Changed from "user.id"
       .populate('user', 'name avatar')  // ← Add populate to get user details
+      .populate('comments.user', 'name avatar')
       .sort({ createdAt: -1 })
       .lean();
 
