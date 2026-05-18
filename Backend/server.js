@@ -22,19 +22,37 @@ app.disable('etag');
 // Middleware
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
+const allowedOrigins = [
+  process.env.FRONTEND_URL || "http://localhost:5173",
+  "http://localhost:8080",
+  "https://poetic-cheesecake-c2e17a.netlify.app",
+  "https://civi-eye.vercel.app",
+];
+
 app.use(
   cors({
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:5173",
-      "http://localhost:8080",
-      "https://poetic-cheesecake-c2e17a.netlify.app",
-      "https://civi-eye.vercel.app"
-    ],
+    origin: function (origin, callback) {
+      // allow requests with no origin (like curl, mobile apps, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      }
+      console.warn('[CORS] Rejected origin:', origin);
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true, // required for cookies and Google OAuth redirects
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Log origin for auth endpoints to help diagnose cookie/credential issues in production
+app.use((req, res, next) => {
+  if (req.path && req.path.startsWith('/api/auth')) {
+    console.log('[auth] origin header:', req.headers.origin);
+  }
+  next();
+});
 
 // Parse cookies from incoming requests
 app.use(cookieParser());

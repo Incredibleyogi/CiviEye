@@ -70,35 +70,32 @@ async function apiRequest<T>(
 // Multipart form request for file uploads
 async function apiFormRequest<T>(
   endpoint: string,
-  formData: FormData
+  formData: FormData,
+  options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const token = getAuthToken();
-
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: {
-        // Note: Don't set Content-Type for FormData, browser sets it with boundary
-        ...(options.headers || {}),
-      },
+      method: options.method || 'POST',
+      // Note: Don't set Content-Type for FormData, browser sets it with boundary
+      headers: options.headers || {},
       credentials: 'include', // send cookies
       body: formData,
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
       return {
         success: false,
-        error: data.message || 'Request failed',
-        message: data.message,
+        error: data?.message || 'Request failed',
+        message: data?.message,
       };
     }
 
     return {
-      success: data.success ?? true,
-      data: data.data ?? data,
-      message: data.message,
+      success: data?.success ?? true,
+      data: data?.data ?? data,
+      message: data?.message,
     };
   } catch (error) {
     console.error('API Error:', error);
