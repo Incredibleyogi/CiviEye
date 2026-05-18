@@ -102,10 +102,13 @@ useEffect(() => {
             role: userData.role ?? prev.role,
           };
         });
+      } else {
+        console.log('[AuthContext] getCurrentUser failed, clearing stored user');
+        setUser(null);
       }
     } catch (err) {
-      // not authenticated or server error - keep user null
       console.log('[AuthContext] checkAuth failed:', err);
+      setUser(null);
     }
 
     setLoading(false);
