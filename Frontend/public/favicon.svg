@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CiviEye favicon">
+  <rect width="64" height="64" rx="16" fill="#0f172a"/>
+  <circle cx="32" cy="30" r="14" fill="none" stroke="#22c55e" stroke-width="6"/>
+  <path d="M20 30c3-8 12-12 20-6" stroke="#22c55e" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="32" cy="30" r="4.5" fill="#f8fafc"/>
+  <path d="M18 46h28" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+</svg>
