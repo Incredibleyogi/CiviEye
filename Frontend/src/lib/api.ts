@@ -133,7 +133,7 @@ export const passwordApi = {
   resetPassword: (data: { token: string; password: string }) =>
     apiRequest('/password/reset-password', { method: 'POST', body: JSON.stringify(data) }),
 
-  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+  changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword?: string }) =>
     apiRequest('/password/change-password', { method: 'POST', body: JSON.stringify(data) }),
 };
 

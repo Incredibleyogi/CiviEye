@@ -12,8 +12,13 @@ export const protect = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded?.id || decoded?._id;
 
-    const user = await User.findById(decoded.id).select("-password");
+    if (!userId) {
+      return res.status(401).json({ message: "Token invalid" });
+    }
+
+    const user = await User.findById(userId).select("-password");
 
     if (!user) {
       return res.status(401).json({ message: "User not found" });
@@ -21,6 +26,7 @@ export const protect = async (req, res, next) => {
 
     console.log('[authMiddleware] User authenticated:', { id: user._id, email: user.email, role: user.role, name: user.name });
 
+    req.userId = user._id.toString();
     req.user = {
       _id: user._id,
       role: user.role,

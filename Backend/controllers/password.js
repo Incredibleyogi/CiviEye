@@ -8,17 +8,22 @@ import sendOTPEmail from "../utils/sendOTPEmail.js";
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword, confirmPassword } = req.body;
+    const effectiveConfirmPassword = confirmPassword ?? newPassword;
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!currentPassword || !newPassword || !effectiveConfirmPassword) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    if (newPassword !== confirmPassword) {
+    if (newPassword !== effectiveConfirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    // 🔐 AUTH SAFETY CHECK (ADD HERE)
-    const user = await User.findById(req.userId);
+    const userId = req.userId || req.user?._id || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized user" });
+    }
+
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(401).json({ message: "Unauthorized user" });
     }

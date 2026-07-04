@@ -24,7 +24,7 @@ interface AuthContextType {
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   updateProfile: (data: { name?: string; bio?: string; avatar?: string }) => Promise<boolean>;
-  updatePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  updatePassword: (currentPassword: string, newPassword: string, confirmPassword?: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -253,9 +253,9 @@ useEffect(() => {
     }
   }, []);
 
-  const updatePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+  const updatePassword = useCallback(async (currentPassword: string, newPassword: string, confirmPassword?: string) => {
     try {
-      const res = await passwordApi.changePassword({ currentPassword, newPassword });
+      const res = await passwordApi.changePassword({ currentPassword, newPassword, confirmPassword });
       return res.success;
     } catch {
       return false;

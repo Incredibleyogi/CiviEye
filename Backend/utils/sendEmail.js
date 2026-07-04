@@ -1,17 +1,11 @@
-import nodemailer from "nodemailer";
+import { createTransporter, getMailFrom } from "../config/mail.js";
 
 export const sendEmail = async ({ to, subject, text, html }) => {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USERNAME,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
+    const transporter = createTransporter();
 
     const mailOptions = {
-      from: `"CivicEye" <${process.env.EMAIL_USERNAME}>`,
+      from: `"CivicEye" <${getMailFrom()}>`,
       to,
       subject,
       text,
@@ -22,7 +16,6 @@ export const sendEmail = async ({ to, subject, text, html }) => {
 
     console.log(`📧 Email sent to ${to}`);
     return true;
-
   } catch (err) {
     console.error("❌ Email sending failed:", err.message);
     return false;

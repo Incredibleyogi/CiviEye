@@ -56,7 +56,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
 
     setIsChangingPassword(true);
     try {
-      const success = await updatePassword(currentPassword, newPassword);
+      const success = await updatePassword(currentPassword, newPassword, confirmPassword);
       if (success) {
         toast({
           title: 'Success',

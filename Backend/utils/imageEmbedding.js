@@ -1,8 +1,20 @@
 import * as tf from '@tensorflow/tfjs';
 import * as mobilenet from '@tensorflow-models/mobilenet';
-import sharp from 'sharp';
 
 let model;
+let sharp;
+
+async function getSharp() {
+  if (!sharp) {
+    try {
+      sharp = (await import('sharp')).default;
+    } catch (error) {
+      console.error('⚠️ Sharp unavailable, image embedding will be disabled:', error.message);
+      sharp = null;
+    }
+  }
+  return sharp;
+}
 
 async function loadModel() {
   if (!model) {
@@ -17,8 +29,13 @@ async function loadModel() {
  */
 export const getImageEmbedding = async (imageBuffer) => {
   try {
+    const sharpLib = await getSharp();
+    if (!sharpLib) {
+      return [];
+    }
+
     // Decode image using sharp
-    const { data, info } = await sharp(imageBuffer)
+    const { data, info } = await sharpLib(imageBuffer)
       .resize(224, 224)
       .removeAlpha()
       .raw()
