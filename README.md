@@ -87,6 +87,7 @@ Backend → Render
 🏠 Home Feed
 
 Users can browse community-reported issues, interact through likes and comments, and monitor the progress of ongoing civic complaints.
+
 <img width="799" height="1078" alt="image" src="https://github.com/user-attachments/assets/ea607f00-2878-4c6c-ab09-f29df4e6cd2e" />
 
 🔔 Notifications
@@ -96,20 +97,24 @@ Receive updates whenever:
 Someone likes your report
 Issue status changes
 Authorities update your complaint
+
 <img width="808" height="889" alt="image" src="https://github.com/user-attachments/assets/46e3f063-7b67-47a6-845f-9489925a9cf2" />
 
 ➕ Report an Issue
 
 Simple reporting interface allowing users to upload photos, categorize issues, describe the problem, and optionally provide location details.
+
 <img width="576" height="891" alt="image" src="https://github.com/user-attachments/assets/9c4c1f18-ed4f-4e9d-8958-8e774f7a8625" />
 
 👤 Profile
 
 Manage personal information, update profile picture, edit bio, and view all previously submitted reports.
+
 <img width="591" height="892" alt="image" src="https://github.com/user-attachments/assets/7e030363-d050-4850-8c43-878ecb9e24e7" />
 
 ✏️ Edit Profile
 
 Update profile information with a clean and intuitive interface.
+
 <img width="441" height="565" alt="image" src="https://github.com/user-attachments/assets/5df082a5-136b-42a9-9b89-855c517b387b" />
 
