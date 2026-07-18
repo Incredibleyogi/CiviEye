@@ -56,6 +56,29 @@ export const createPost = async (req, res) => {
       imageUrls.push(uploadResult.secure_url);
     }
 
+
+    const imageEmbedding = req.file
+  ? await getImageEmbedding(req.file.buffer)
+  : [];
+const textEmbedding = await getTextEmbedding(description);
+  try {
+    if (!text) return [];
+    const resp = await hf.featureExtraction({
+      model: HF_MODEL,
+      inputs: text,
+    });
+
+    // For a single string input, resp is usually a flat array of numbers
+    // (the sentence embedding itself). For some models/providers it can come
+    // back nested as [[...]] — only unwrap in that case.
+    const vec = Array.isArray(resp[0]) ? resp[0] : resp;
+    return Array.from(vec);
+  } catch (err) {
+    console.error("getTextEmbedding error:", err?.message ?? err);
+    return [];
+  }
+
+
     // 4. CREATE POST (THIS IS WHERE images: imageUrls GOES)
     const post = await Post.create({
       title,
@@ -67,6 +90,8 @@ export const createPost = async (req, res) => {
       image: imageUrls[0], // ✅ IMPORTANT
       status: "Unresolved",
       mediaType: req.file ? "image" : "video",
+       imageEmbedding,  
+  textEmbedding,  
     });
    // Send notification to all users EXCEPT the creator
 const allUsers = await User.find({ _id: { $ne: req.user._id } }, "_id");
