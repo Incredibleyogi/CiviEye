@@ -76,7 +76,8 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (isLoading) return;
+
     if (password.length < 8) {
       toast({
         variant: 'destructive',
@@ -96,24 +97,25 @@ export default function Signup() {
     }
 
     setIsLoading(true);
+    try {
+      const result = await signup({ name, email, password, confirmPassword });
 
-    const result = await signup({ name, email, password, confirmPassword });
-
-    setIsLoading(false);
-
-    if (result.success) {
-      toast({
-        title: 'Verification sent!',
-        description: 'Please check your email for the OTP code.',
-      });
-      setStep('otp');
-      setResendCooldown(60);
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Signup failed',
-        description: result.error || 'Please check your details and try again.',
-      });
+      if (result.success) {
+        toast({
+          title: 'Verification sent!',
+          description: 'Please check your email for the OTP code.',
+        });
+        setStep('otp');
+        setResendCooldown(60);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Signup failed',
+          description: result.error || 'Please check your details and try again.',
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
