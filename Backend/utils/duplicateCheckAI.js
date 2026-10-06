@@ -56,8 +56,10 @@ export const checkDuplicate = async ({
     const candidates = await Post.find({}).limit(100);
 
     for (const p of candidates) {
-      const hasImageMatchData = imageEmb.length && p.imageEmbedding && p.imageEmbedding.length;
-      const hasTextMatchData = textEmb.length && p.textEmbedding && p.textEmbedding.length;
+      const hasImageMatchData =
+        imageEmb.length && p.imageEmbedding && p.imageEmbedding.length;
+      const hasTextMatchData =
+        textEmb.length && p.textEmbedding && p.textEmbedding.length;
 
       if (!hasImageMatchData || !hasTextMatchData) {
         continue;

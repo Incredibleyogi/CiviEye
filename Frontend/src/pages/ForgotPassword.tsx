@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Eye as LogoIcon, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { passwordApi } from '@/lib/api';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, Mail, Eye as LogoIcon, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { passwordApi } from "@/lib/api";
 import {
   InputOTP,
   InputOTPGroup,
@@ -16,12 +16,12 @@ export default function ForgotPassword() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<'email' | 'otp' | 'reset'>('email');
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [resetToken, setResetToken] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [step, setStep] = useState<"email" | "otp" | "reset">("email");
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -34,15 +34,16 @@ export default function ForgotPassword() {
 
     if (result.success) {
       toast({
-        title: 'Reset Code Sent',
-        description: 'Check your email for the verification code.',
+        title: "Reset Code Sent",
+        description: "Check your email for the verification code.",
       });
-      setStep('otp');
+      setStep("otp");
     } else {
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: result.error || 'Failed to send reset code. Please try again.',
+        variant: "destructive",
+        title: "Error",
+        description:
+          result.error || "Failed to send reset code. Please try again.",
       });
     }
   };
@@ -53,29 +54,29 @@ export default function ForgotPassword() {
     // Store the OTP as token for reset password step
     setResetToken(otp);
     toast({
-      title: 'Code Verified',
-      description: 'Now set your new password.',
+      title: "Code Verified",
+      description: "Now set your new password.",
     });
-    setStep('reset');
+    setStep("reset");
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (newPassword !== confirmPassword) {
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Passwords do not match.',
+        variant: "destructive",
+        title: "Error",
+        description: "Passwords do not match.",
       });
       return;
     }
 
     if (newPassword.length < 8) {
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Password must be at least 8 characters.',
+        variant: "destructive",
+        title: "Error",
+        description: "Password must be at least 8 characters.",
       });
       return;
     }
@@ -91,16 +92,16 @@ export default function ForgotPassword() {
 
     if (result.success) {
       toast({
-        title: 'Password Reset',
-        description: 'Your password has been updated successfully.',
+        title: "Password Reset",
+        description: "Your password has been updated successfully.",
       });
-      navigate('/login');
-    } 
-    else {
+      navigate("/login");
+    } else {
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: result.error || 'Failed to reset password. Please try again.',
+        variant: "destructive",
+        title: "Error",
+        description:
+          result.error || "Failed to reset password. Please try again.",
       });
     }
   };
@@ -121,10 +122,12 @@ export default function ForgotPassword() {
 
       {/* Content */}
       <div className="flex-1 px-6 py-6">
-        {step === 'email' && (
+        {step === "email" && (
           <form onSubmit={handleSendOtp} className="space-y-5 animate-fade-in">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold text-foreground">Forgot Password</h2>
+              <h2 className="text-xl font-semibold text-foreground">
+                Forgot Password
+              </h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Enter your email to receive a reset code
               </p>
@@ -139,7 +142,7 @@ export default function ForgotPassword() {
                   type="email"
                   placeholder="Enter your email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
                   required
                 />
@@ -159,7 +162,7 @@ export default function ForgotPassword() {
                   Sending...
                 </span>
               ) : (
-                'Send Reset Code'
+                "Send Reset Code"
               )}
             </Button>
 
@@ -173,12 +176,15 @@ export default function ForgotPassword() {
           </form>
         )}
 
-        {step === 'otp' && (
+        {step === "otp" && (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center">
-              <h2 className="text-xl font-semibold text-foreground">Verify Code</h2>
+              <h2 className="text-xl font-semibold text-foreground">
+                Verify Code
+              </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                We sent a 6-digit code to<br />
+                We sent a 6-digit code to
+                <br />
                 <span className="font-medium text-foreground">{email}</span>
               </p>
             </div>
@@ -209,12 +215,12 @@ export default function ForgotPassword() {
                   Verifying...
                 </span>
               ) : (
-                'Verify Code'
+                "Verify Code"
               )}
             </Button>
 
             <button
-              onClick={() => setStep('email')}
+              onClick={() => setStep("email")}
               className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               ← Change email
@@ -222,10 +228,15 @@ export default function ForgotPassword() {
           </div>
         )}
 
-        {step === 'reset' && (
-          <form onSubmit={handleResetPassword} className="space-y-5 animate-fade-in">
+        {step === "reset" && (
+          <form
+            onSubmit={handleResetPassword}
+            className="space-y-5 animate-fade-in"
+          >
             <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold text-foreground">Reset Password</h2>
+              <h2 className="text-xl font-semibold text-foreground">
+                Reset Password
+              </h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Create a new password for your account
               </p>
@@ -238,11 +249,13 @@ export default function ForgotPassword() {
                 type="password"
                 placeholder="Enter new password"
                 value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
+                onChange={(e) => setNewPassword(e.target.value)}
                 required
                 minLength={8}
               />
-              <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+              <p className="text-xs text-muted-foreground">
+                Minimum 8 characters
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -252,7 +265,7 @@ export default function ForgotPassword() {
                 type="password"
                 placeholder="Confirm new password"
                 value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
             </div>
@@ -270,7 +283,7 @@ export default function ForgotPassword() {
                   Resetting...
                 </span>
               ) : (
-                'Reset Password'
+                "Reset Password"
               )}
             </Button>
           </form>

@@ -30,12 +30,11 @@ export const createPost = async (req, res) => {
         {
           folder: "civiceye/posts",
           resource_type: "image",
-        }
+        },
       );
 
       imageUrls.push(uploadResult.secure_url);
     }
-
 
     // 4. CREATE POST (THIS IS WHERE images: imageUrls GOES)
     const post = await Post.create({
@@ -60,16 +59,16 @@ export const createPost = async (req, res) => {
 
       if (existingNotifications.length === 0) {
         await createAndSendNotification(
-          allUsers.map(user => user._id.toString()),
+          allUsers.map((user) => user._id.toString()),
           {
             title: "New Civic Issue Reported",
             message: `${post.title} reported near ${address || "your area"}`,
             type: "nearby_post",
             data: { postId: post._id },
-          }
+          },
         );
       }
-    })().catch(error => {
+    })().catch((error) => {
       console.error("Create post notification error:", error);
     });
 
@@ -82,7 +81,6 @@ export const createPost = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
- 
 
 /* ===========================
    REMAINING CONTROLLERS
@@ -118,11 +116,11 @@ export const getMyPosts = async (req, res) => {
   try {
     // FIX: Get userId properly
     const userId = req.userId || req.user?._id || req.user?.id;
-    
+
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
-    
+
     const posts = await Post.find({ user: userId })
       .sort({ createdAt: -1 })
       .populate("user", "name email avatar")
@@ -140,7 +138,7 @@ export const deletePost = async (req, res) => {
 
     // FIX: Get userId properly and convert to string for comparison
     const userId = (req.userId || req.user?._id || req.user?.id)?.toString();
-    
+
     if (post.user.toString() !== userId) {
       return res.status(403).json({ message: "Not authorized" });
     }
@@ -156,22 +154,25 @@ export const deletePost = async (req, res) => {
 export const updatePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (!post) return res.status(404).json({ message: "Post not found" });
 
     const userId = (req.userId || req.user?._id || req.user?.id)?.toString();
-    if (!userId) return res.status(401).json({ message: 'User not authenticated' });
+    if (!userId)
+      return res.status(401).json({ message: "User not authenticated" });
 
     // Only post owner (or admin) can edit
-    const isAdmin = req.user?.role === 'admin';
+    const isAdmin = req.user?.role === "admin";
     if (post.user.toString() !== userId && !isAdmin) {
-      return res.status(403).json({ message: 'Not authorized to edit this post' });
+      return res
+        .status(403)
+        .json({ message: "Not authorized to edit this post" });
     }
 
     const { title, caption, description, category, address } = req.body;
 
     // Basic validation
     if (!title && !caption && !description && !category && !address) {
-      return res.status(400).json({ message: 'No fields to update' });
+      return res.status(400).json({ message: "No fields to update" });
     }
 
     if (title) post.title = title;
@@ -184,7 +185,7 @@ export const updatePost = async (req, res) => {
 
     res.json({ success: true, post });
   } catch (err) {
-    console.error('[postController] updatePost error:', err);
+    console.error("[postController] updatePost error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -196,16 +197,16 @@ export const likePost = async (req, res) => {
 
     // FIX: Get userId properly
     const userId = (req.userId || req.user?._id || req.user?.id)?.toString();
-    
+
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
     // FIX: Use .some() with toString() for proper ObjectId comparison
-    const hasLiked = post.likes.some(id => id.toString() === userId);
+    const hasLiked = post.likes.some((id) => id.toString() === userId);
 
     if (hasLiked) {
-      post.likes = post.likes.filter(id => id.toString() !== userId);
+      post.likes = post.likes.filter((id) => id.toString() !== userId);
     } else {
       post.likes.push(userId);
 
@@ -228,7 +229,7 @@ export const likePost = async (req, res) => {
 export const addComment = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
-    
+
     // FIX: Add null check for post
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
@@ -236,7 +237,7 @@ export const addComment = async (req, res) => {
 
     // FIX: Get userId properly
     const userId = req.userId || req.user?._id || req.user?.id;
-    
+
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
@@ -270,30 +271,34 @@ export const updatePostStatus = async (req, res) => {
     // FIX: Get userId properly and convert to string
     const userId = (req.userId || req.user?._id || req.user?.id)?.toString();
     const userRole = req.user?.role;
-    
-    console.log('[postController] updatePostStatus:', {
+
+    console.log("[postController] updatePostStatus:", {
       postId: req.params.id,
       newStatus: req.body.status,
       userId,
       userRole,
-      isAdmin: userRole === 'admin',
+      isAdmin: userRole === "admin",
       postOwnerId: post.user.toString(),
-      isPostOwner: post.user.toString() === userId
+      isPostOwner: post.user.toString() === userId,
     });
 
     // FIX: Allow if admin OR post owner
-    if (
-      post.user.toString() !== userId &&
-      userRole !== "admin"
-    ) {
-      console.log('[postController] Authorization failed - not admin and not post owner');
+    if (post.user.toString() !== userId && userRole !== "admin") {
+      console.log(
+        "[postController] Authorization failed - not admin and not post owner",
+      );
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    console.log('[postController] Updating post status from', post.status, 'to', req.body.status);
+    console.log(
+      "[postController] Updating post status from",
+      post.status,
+      "to",
+      req.body.status,
+    );
     post.status = req.body.status;
     await post.save();
-    console.log('[postController] Post status saved successfully');
+    console.log("[postController] Post status saved successfully");
 
     if (post.user.toString() !== userId) {
       await createAndSendNotification(post.user, {
@@ -305,7 +310,7 @@ export const updatePostStatus = async (req, res) => {
 
     res.json({ message: "Status updated", post });
   } catch (err) {
-    console.error('[postController] updatePostStatus error:', err);
+    console.error("[postController] updatePostStatus error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -331,19 +336,19 @@ export const getPostsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const posts = await Post.find({ user: userId })  // ← Changed from "user.id"
-      .populate('user', 'name avatar')  // ← Add populate to get user details
-      .populate('comments.user', 'name avatar')
+    const posts = await Post.find({ user: userId }) // ← Changed from "user.id"
+      .populate("user", "name avatar") // ← Add populate to get user details
+      .populate("comments.user", "name avatar")
       .sort({ createdAt: -1 })
       .lean();
 
     const transformedPosts = posts.map((post) => ({
       id: post._id,
-      imageUrl: post.image,  // ← Your schema uses 'image', not 'imageUrl'
-      caption: post.description,  // ← Your schema uses 'description', not 'caption'
+      imageUrl: post.image, // ← Your schema uses 'image', not 'imageUrl'
+      caption: post.description, // ← Your schema uses 'description', not 'caption'
       category: post.category,
-      status: (post.status || "unresolved").toLowerCase().replace(' ', '_'),
-      likes: post.likes?.length || 0,  // ← likes is an array of ObjectIds
+      status: (post.status || "unresolved").toLowerCase().replace(" ", "_"),
+      likes: post.likes?.length || 0, // ← likes is an array of ObjectIds
       likedBy: post.likes || [],
       comments: post.comments || [],
       createdAt: post.createdAt,
@@ -364,5 +369,3 @@ export const getPostsByUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
