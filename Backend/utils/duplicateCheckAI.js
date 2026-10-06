@@ -31,22 +31,12 @@ export const getTextEmbedding = async (text) => {
 };
 
 /**
- * Checks for duplicate posts near the given coords.
+ * Checks for duplicate posts using text and image similarity.
  * Returns: { isDuplicate: boolean, post: post|null, reasons: [] }
- *
- * Options:
- *  description: string
- *  imageBuffer: Buffer|null
- *  locationCoords: [lng, lat]
- *  radius: meters
- *  imageSimThreshold: 0.80
- *  textSimThreshold: 0.70
  */
 export const checkDuplicate = async ({
   description = "",
   imageBuffer = null,
-  locationCoords = [0, 0],
-  radius = 200,
   imageSimThreshold = 0.75,
   textSimThreshold = 0.85,
 }) => {
@@ -63,58 +53,66 @@ export const checkDuplicate = async ({
       }
     }
 
-    // Candidate selection: posts near the location
-    const candidates = await Post.find({
-      location: {
-        $near: {
-          $geometry: { type: "Point", coordinates: locationCoords },
-          $maxDistance: radius,
-        },
-      },
-    }).limit(100);
+    const candidates = await Post.find({}).limit(100);
 
     for (const p of candidates) {
-      // Prefer image-based comparison when both available
-      if (imageEmb.length && p.imageEmbedding && p.imageEmbedding.length) {
-        const sim = cosineSimilarity(imageEmb, p.imageEmbedding);
-        if (sim >= imageSimThreshold) {
-          return {
-            isDuplicate: true,
-            post: p,
-            reasons: [{ type: "image", score: sim }],
-          };
-        }
+      const hasImageMatchData = imageEmb.length && p.imageEmbedding && p.imageEmbedding.length;
+      const hasTextMatchData = textEmb.length && p.textEmbedding && p.textEmbedding.length;
+
+      if (!hasImageMatchData || !hasTextMatchData) {
+        continue;
       }
 
-      // Next: vector text embedding comparison (if stored)
-      if (textEmb.length && p.textEmbedding && p.textEmbedding.length) {
-        const sim = cosineSimilarity(textEmb, p.textEmbedding);
-        if (sim >= textSimThreshold) {
-          return {
-            isDuplicate: true,
-            post: p,
-            reasons: [{ type: "text", score: sim }],
-          };
-        }
+      const imageSim = cosineSimilarity(imageEmb, p.imageEmbedding);
+      const textSim = cosineSimilarity(textEmb, p.textEmbedding);
+
+      // Only treat as duplicate when BOTH image and text similarity are high.
+      if (imageSim >= imageSimThreshold && textSim >= textSimThreshold) {
+        return {
+          isDuplicate: true,
+          post: p,
+          reasons: [
+            { type: "image", score: imageSim },
+            { type: "text", score: textSim },
+          ],
+          imageEmbedding: imageEmb,
+          textEmbedding: textEmb,
+        };
       }
 
-      // Last resort: simple string similarity on descriptions
       if (description && p.description) {
         const simple = textSimilarity(description, p.description);
-        if (simple >= 0.75) {
+        if (simple >= 0.95 && imageSim >= imageSimThreshold) {
           return {
             isDuplicate: true,
             post: p,
-            reasons: [{ type: "text_simple", score: simple }],
+            reasons: [
+              { type: "text_simple", score: simple },
+              { type: "image", score: imageSim },
+            ],
+            imageEmbedding: imageEmb,
+            textEmbedding: textEmb,
           };
         }
       }
     }
 
-    return { isDuplicate: false, post: null, reasons: [] };
+    return {
+      isDuplicate: false,
+      post: null,
+      reasons: [],
+      imageEmbedding: imageEmb,
+      textEmbedding: textEmb,
+    };
   } catch (err) {
     console.error("checkDuplicate error:", err?.message ?? err);
     // On failure, prefer to allow the post (do not block), but log the error
-    return { isDuplicate: false, post: null, reasons: [] };
+    return {
+      isDuplicate: false,
+      post: null,
+      reasons: [],
+      imageEmbedding: [],
+      textEmbedding: [],
+    };
   }
 };

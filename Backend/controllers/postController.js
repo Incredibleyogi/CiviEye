@@ -1,22 +1,16 @@
 // controllers/postController.js
-import fs from "fs";
 import Post from "../models/Post.js";
 import User from "../models/User.js";
 import cloudinary from "../utils/cloudinary.js";
-import { getImageEmbedding } from "../utils/imageEmbedding.js";
-import { getTextEmbedding } from "../utils/duplicateCheckAI.js";
 import { createAndSendNotification } from "../utils/socketEvents.js";
 import Notification from "../models/Notification.js";
-
-
-const { getIo } = await import("../config/socket.js");
 
 /* ===========================
    CREATE POST (MULTER BASED)
 =========================== */
 export const createPost = async (req, res) => {
   try {
-    const { title, description, category, address, location } = req.body;
+    const { title, description, category, address } = req.body;
 
     // 1. Basic validation
     if (!title || !description || !category) {
@@ -27,21 +21,7 @@ export const createPost = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // 2. Parse & validate location
-    let parsedLocation = location;
-    if (typeof location === "string") {
-      parsedLocation = JSON.parse(location);
-    }
-
-    if (
-      parsedLocation?.type !== "Point" ||
-      !Array.isArray(parsedLocation.coordinates) ||
-      parsedLocation.coordinates.length !== 2
-    ) {
-      return res.status(400).json({ message: "Invalid location format" });
-    }
-
-    // 3. Upload image to Cloudinary (if exists)
+    // 2. Upload image to Cloudinary (if exists)
     let imageUrls = [];
 
     if (req.file) {
@@ -57,60 +37,41 @@ export const createPost = async (req, res) => {
     }
 
 
-    const imageEmbedding = req.file
-  ? await getImageEmbedding(req.file.buffer)
-  : [];
-const textEmbedding = await getTextEmbedding(description);
-  try {
-    if (!text) return [];
-    const resp = await hf.featureExtraction({
-      model: HF_MODEL,
-      inputs: text,
-    });
-
-    // For a single string input, resp is usually a flat array of numbers
-    // (the sentence embedding itself). For some models/providers it can come
-    // back nested as [[...]] — only unwrap in that case.
-    const vec = Array.isArray(resp[0]) ? resp[0] : resp;
-    return Array.from(vec);
-  } catch (err) {
-    console.error("getTextEmbedding error:", err?.message ?? err);
-    return [];
-  }
-
-
     // 4. CREATE POST (THIS IS WHERE images: imageUrls GOES)
     const post = await Post.create({
       title,
       description,
       category,
       address,
-      location: parsedLocation,
       user: req.user._id,
       image: imageUrls[0], // ✅ IMPORTANT
       status: "Unresolved",
       mediaType: req.file ? "image" : "video",
-       imageEmbedding,  
-  textEmbedding,  
+      imageEmbedding: req.imageEmbedding || [],
+      textEmbedding: req.textEmbedding || [],
     });
-   // Send notification to all users EXCEPT the creator
-const allUsers = await User.find({ _id: { $ne: req.user._id } }, "_id");
-const existingNotifications = await Notification.find({
-  'data.postId': post._id,
-  type: 'nearby_post'
-});
-if (existingNotifications.length === 0) {
-await createAndSendNotification(
-  allUsers.map(u => u._id.toString()),
-  {
-    title: "New Civic Issue Reported",
-    message: `${post.title} reported near ${address || 'your area'}`,
-    type: "nearby_post",
-    data: { postId: post._id },
-  }
-);
-}
+    // Notification delivery is best-effort and should not delay post creation.
+    void (async () => {
+      const allUsers = await User.find({ _id: { $ne: req.user._id } }, "_id");
+      const existingNotifications = await Notification.find({
+        "data.postId": post._id,
+        type: "nearby_post",
+      });
 
+      if (existingNotifications.length === 0) {
+        await createAndSendNotification(
+          allUsers.map(user => user._id.toString()),
+          {
+            title: "New Civic Issue Reported",
+            message: `${post.title} reported near ${address || "your area"}`,
+            type: "nearby_post",
+            data: { postId: post._id },
+          }
+        );
+      }
+    })().catch(error => {
+      console.error("Create post notification error:", error);
+    });
 
     return res.status(201).json({
       success: true,

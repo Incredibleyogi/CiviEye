@@ -11,7 +11,7 @@ import cloudinary from "../utils/cloudinary.js";
 ======================= */
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, confirmPassword, lat, lng } = req.body;
+    const { name, email, password, confirmPassword } = req.body;
 
     /* =======================
        BASIC VALIDATIONS
@@ -61,16 +61,6 @@ export const signup = async (req, res) => {
       otpLastSentAt: Date.now(),
       isVerified: false,
     };
-
-    /* =======================
-       OPTIONAL LOCATION
-    ======================= */
-    if (lat && lng) {
-      userData.location = {
-        type: "Point",
-        coordinates: [Number(lng), Number(lat)], // GeoJSON order
-      };
-    }
 
     const user = await User.create(userData);
 

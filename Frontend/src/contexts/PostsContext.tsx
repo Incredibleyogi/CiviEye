@@ -32,7 +32,6 @@ export interface Post {
     address?: string;
     city?: string;
     village?: string;
-    coordinates?: { lat: number; lng: number };
   };
   user: {
     id: string;
@@ -102,9 +101,6 @@ const normalizePost = (p: any): Post => ({
     address: p.address,
     city: p.location?.city,
     village: p.location?.village,
-    coordinates: p.location?.coordinates
-      ? { lat: p.location.coordinates[1], lng: p.location.coordinates[0] }
-      : undefined,
   },
   user: {
     id: p.user?._id || p.user?.id || '',
@@ -138,22 +134,7 @@ export function PostsProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
 
-      let lat: number | undefined;
-      let lng: number | undefined;
-
-      if (navigator.geolocation) {
-        try {
-          const pos = await new Promise<GeolocationPosition>((res, rej) =>
-            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 })
-          );
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-        } catch {
-          console.log('Geolocation not available, fetching all posts');
-        }
-      }
-
-      const res = await postsApi.getNearby({ lat, lng, radius: 50000 });
+      const res = await postsApi.getNearby();
       console.log('Posts API response:', res);
 
       if (res.success && res.data) {
@@ -196,13 +177,6 @@ export function PostsProvider({ children }: { children: ReactNode }) {
         description: post.caption,
         category: post.category,
         address: post.location?.address || '',
-        location: {
-          type: 'Point',
-          coordinates: [
-            post.location?.coordinates?.lng || 0,
-            post.location?.coordinates?.lat || 0,
-          ],
-        },
         imageBase64: post.imageUrl,
       });
 

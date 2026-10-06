@@ -1,35 +1,33 @@
 import { checkDuplicate } from "../utils/duplicateCheckAI.js";
 
 const duplicateCheck = async (req, res, next) => {
+  let timeoutId;
   try {
-    const { description, location } = req.body;
+    const { description } = req.body;
 
-    // 1. Parse location safely
-    let parsedLocation = location;
-    if (typeof location === "string") {
-      parsedLocation = JSON.parse(location);
-    }
-
-    const coords =
-  Array.isArray(parsedLocation?.coordinates) &&
-  parsedLocation.coordinates.length === 2 &&
-  typeof parsedLocation.coordinates[0] === "number" &&
-  typeof parsedLocation.coordinates[1] === "number"
-    ? parsedLocation.coordinates
-    : null;
-
-    // 2. Get image buffer from multer (if exists)
+    // 1. Get image buffer from multer (if exists)
     let imageBuffer = null;
     if (req.file?.buffer) {
       imageBuffer = req.file.buffer;
     }
 
     // 3. Run duplicate check
-    const result = await checkDuplicate({
-      description,
-      imageBuffer,
-      locationCoords: coords,
-    });
+    const result = await Promise.race([
+      checkDuplicate({ description, imageBuffer }),
+      new Promise(resolve => {
+        timeoutId = setTimeout(() => resolve(null), 8000);
+      }),
+    ]);
+
+    if (!result) {
+      console.warn("Duplicate check timed out; continuing post creation");
+      req.imageEmbedding = [];
+      req.textEmbedding = [];
+      return next();
+    }
+
+    req.imageEmbedding = result.imageEmbedding || [];
+    req.textEmbedding = result.textEmbedding || [];
 
     if (result?.isDuplicate) {
       return res.status(409).json({
@@ -44,6 +42,8 @@ const duplicateCheck = async (req, res, next) => {
   } catch (err) {
     console.error("duplicateCheck error:", err);
     next(); // never block post creation on AI failure
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 

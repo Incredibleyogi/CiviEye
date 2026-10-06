@@ -167,12 +167,6 @@ export default function CreatePost() {
       formData.append("description", caption.trim());
       formData.append("category", category);
 
-      // Append location in GeoJSON format
-      formData.append("location", JSON.stringify({
-        type: "Point",
-        coordinates: [parseFloat(location_data.lng || '0'), parseFloat(location_data.lat || '0')]
-      }));
-
       // Append address if any
       formData.append("address", location_data.address || '');
 

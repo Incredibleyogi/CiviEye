@@ -108,7 +108,7 @@ async function apiFormRequest<T>(
 
 // Auth API
 export const authApi = {
-  signup: (data: { name: string; email: string; password: string; confirmPassword: string; lat?: number; lng?: number }) =>
+  signup: (data: { name: string; email: string; password: string; confirmPassword: string }) =>
     apiRequest('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
 
   login: (data: { email: string; password: string }) =>
@@ -130,7 +130,12 @@ export const passwordApi = {
   forgotPassword: (data: { email: string }) =>
     apiRequest('/password/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
 
-  resetPassword: (data: { token: string; password: string }) =>
+  resetPassword: (data: {
+    email: string;
+    otp: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) =>
     apiRequest('/password/reset-password', { method: 'POST', body: JSON.stringify(data) }),
 
   changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword?: string }) =>
@@ -160,10 +165,6 @@ export interface CreatePostData {
   description: string;
   category: string;
   address: string;
-  location: {
-    type: 'Point';
-    coordinates: [number, number];
-  };
   imageFile?: File;
   imageBase64?: string;
 }
@@ -207,11 +208,8 @@ export const postsApi = {
   },
 
   // FIX: Return type includes { posts: [...] } structure
-  getNearby: (params?: { lat?: number; lng?: number; radius?: number; category?: string; status?: string }) => {
+  getNearby: (params?: { category?: string; status?: string }) => {
     const searchParams = new URLSearchParams();
-    if (params?.lat) searchParams.append('lat', params.lat.toString());
-    if (params?.lng) searchParams.append('lng', params.lng.toString());
-    if (params?.radius) searchParams.append('radius', params.radius.toString());
     if (params?.category) searchParams.append('category', params.category);
     if (params?.status) searchParams.append('status', params.status);
     const queryString = searchParams.toString();

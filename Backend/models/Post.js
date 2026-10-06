@@ -20,11 +20,6 @@ const postSchema = new mongoose.Schema({
   category: String,
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   comments: [commentSchema],
-  // GeoJSON
-  location: {
-    type: { type: String, enum: ["Point"], default: "Point" },
-    coordinates: { type: [Number], required: true } // [lng, lat]
-  },
   address: String,
   status: { type: String, default: "Unresolved" },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -33,7 +28,5 @@ const postSchema = new mongoose.Schema({
   textEmbedding: { type: [Number], default: [] }, // optional if using text embeddings
   createdAt: { type: Date, default: Date.now }
 });
-
-postSchema.index({ location: "2dsphere" });
 
 export default mongoose.model("Post", postSchema);

@@ -81,7 +81,12 @@ export default function ForgotPassword() {
     }
 
     setIsLoading(true);
-    const result = await passwordApi.resetPassword({ token: resetToken, password: newPassword });
+    const result = await passwordApi.resetPassword({
+      email,
+      otp: resetToken,
+      newPassword,
+      confirmPassword,
+    });
     setIsLoading(false);
 
     if (result.success) {

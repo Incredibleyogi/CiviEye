@@ -30,18 +30,6 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
 
-  location: {
-    type: {
-      type: String,
-      enum: ["Point"],
-      default: "Point",
-    },
-    coordinates: {
-      type: [Number], // [lng, lat]
-      index: "2dsphere",
-    },
-  },
-
   role: {
     type: String,
     enum: ["user", "admin"],

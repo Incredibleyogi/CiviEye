@@ -24,11 +24,6 @@ export interface Comment {
   createdAt: string;
 }
 
-export interface GeoLocation {
-  lat: number;
-  lng: number;
-}
-
 export interface Post {
   id: string;
   imageUrl: string;
@@ -38,7 +33,6 @@ export interface Post {
     address?: string;
     city?: string;
     village?: string;
-    coordinates?: GeoLocation;
   };
   user: {
     id: string;
