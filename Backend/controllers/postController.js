@@ -89,10 +89,14 @@ export const createPost = async (req, res) => {
 export const getNearbyPosts = async (req, res) => {
   try {
     const posts = await Post.find()
+      // Embeddings are only used for duplicate detection, not feed rendering.
+      // Excluding them keeps the public feed response substantially lighter.
+      .select("-imageEmbedding -textEmbedding")
       .sort({ createdAt: -1 })
       .limit(200)
       .populate("user", "name email avatar")
-      .populate("comments.user", "name avatar");
+      .populate("comments.user", "name avatar")
+      .lean();
 
     res.json({ posts });
   } catch (err) {
