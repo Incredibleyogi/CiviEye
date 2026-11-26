@@ -118,7 +118,7 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <AppLayout showLogo={false} title="Profile">
+      <AppLayout showLogo={true} title="Profile">
         <div className="animate-fade-in">
           <div className="p-6 text-center border-b border-border">
             <Skeleton className="w-24 h-24 rounded-full mx-auto mb-4" />
@@ -132,7 +132,7 @@ export default function UserProfile() {
 
   if (error || !profile) {
     return (
-      <AppLayout showLogo={false} title="Profile">
+      <AppLayout showLogo={true} title="Profile">
         <div className="flex flex-col items-center justify-center min-h-[50vh] p-6">
           <p className="text-destructive mb-4">{error || 'User not found'}</p>
           <Button variant="outline" onClick={() => navigate(-1)}>
@@ -145,7 +145,7 @@ export default function UserProfile() {
   }
 
   return (
-    <AppLayout showLogo={false} title={profile.name}>
+    <AppLayout showLogo={true} title={profile.name}>
       <div className="animate-fade-in">
         {/* Back Button */}
         <div className="p-4 border-b border-border">
