@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PostsProvider } from "@/contexts/PostsContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
@@ -35,9 +35,15 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
-    const { loading } = useAuth();  // ✅ ADD THIS
+  const { loading } = useAuth();
+  const location = useLocation();
 
-  // ✅ ADD: Show nothing while checking auth
+  // Render the public landing page immediately; authentication is checked in the background.
+  if (loading && location.pathname === "/") {
+    return <Index />;
+  }
+
+  // Keep the existing auth-check gate for all other routes.
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
