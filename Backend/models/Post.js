@@ -29,4 +29,7 @@ const postSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Keep newest-first feed sorting efficient as the posts collection grows.
+postSchema.index({ createdAt: -1 });
+
 export default mongoose.model("Post", postSchema);
