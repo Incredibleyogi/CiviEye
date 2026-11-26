@@ -67,15 +67,24 @@ export default function UserProfile() {
       setLoading(true);
 
       try {
-        // Fetch user profile
-        console.log('Fetching user:', userId); // Debug log
-        const profileRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/auth/user/${userId}`,
-          {
-            credentials: 'include',
-          }
-        );
-         console.log('Profile response status:', profileRes.status); // Debug log
+        // Profile details and posts are independent; fetch them concurrently.
+        const [profileRes, postsRes] = await Promise.all([
+          fetch(
+            `${import.meta.env.VITE_API_URL}/auth/user/${userId}`,
+            {
+              credentials: 'include',
+            }
+          ),
+          fetch(
+            `${import.meta.env.VITE_API_URL}/posts/user/${userId}`,
+            {
+              cache: "no-store",
+              credentials: 'include',
+            }
+          ),
+        ]);
+
+        console.log('Profile response status:', profileRes.status); // Debug log
 
         if (!profileRes.ok) {
           if (profileRes.status === 401) {
@@ -90,25 +99,14 @@ export default function UserProfile() {
         }
 
         const profileData = await profileRes.json();
-        console.log('Profile data:', profileData); // Debug log
         setProfile(profileData.user);
-
-        // Fetch user's posts
-        const postsRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/posts/user/${userId}`,
-          {
-            cache: "no-store",  // Add this
-            credentials: 'include',
-          }
-        );
 
         if (postsRes.ok) {
           const postsData = await postsRes.json();
-          console.log('Posts response:', postsData); // Debug log
-          setPosts(postsData.posts || postsData|| []);
+          setPosts(postsData.posts || postsData || []);
         }
       } catch (err: any) {
-         console.error('Fetch error:', err); // Debug log
+        console.error('Fetch error:', err); // Debug log
         setError(err.message || 'Something went wrong');
       } finally {
         setLoading(false);
@@ -210,4 +208,3 @@ export default function UserProfile() {
     </AppLayout>
   );
 }
-
