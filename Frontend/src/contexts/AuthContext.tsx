@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { authApi, profileApi, passwordApi } from '@/lib/api';
-import { useSocket } from './SocketContext';
 
 export interface User {
   id: string;
@@ -54,20 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize with cached user to prevent flicker
   const [user, setUser] = useState<User | null>(() => getCachedUser());
   const [loading, setLoading] = useState(true);
-  const { registerUser, isConnected } = useSocket();
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   // Sync user state to localStorage
   useEffect(() => {
     saveUserToStorage(user);
   }, [user]);
-
-  // Register user with socket when authenticated
-  useEffect(() => {
-    if (user && isConnected) {
-      registerUser(user.id);
-    }
-  }, [user, isConnected, registerUser]);
 
   // Check for existing session on mount and refresh user data
 useEffect(() => {
